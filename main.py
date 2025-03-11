@@ -144,7 +144,7 @@ class VideoAnnotator(QMainWindow):
         self.open_dir_btn.clicked.connect(self.open_directory)
         left_layout.addWidget(self.open_dir_btn)
 
-        # Video navigation buttons - moved to top as requested
+        # Video navigation buttons 
         nav_layout = QHBoxLayout()
         self.prev_video_btn = QPushButton("Previous Video")
         self.prev_video_btn.clicked.connect(self.prev_video)
@@ -206,7 +206,7 @@ class VideoAnnotator(QMainWindow):
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
 
-        # Events list - Shorter since we'll have 5-6 events max
+        # Events list 
         right_layout.addWidget(QLabel("Events:"))
         self.events_list = QListWidget()
         self.events_list.setMaximumHeight(200)  # Limit height for 5-6 items
@@ -249,9 +249,9 @@ class VideoAnnotator(QMainWindow):
         right_layout.addLayout(event_controls)
         right_layout.addStretch(1)  # Add stretch to keep controls at top
 
-        # Add "About" text link at the bottom - SIMPLER APPROACH
+        # Add "About" text link at the bottom 
         about_label = QLabel("About")
-        about_label.setStyleSheet("color: white; text-decoration: underline;")
+        about_label.setStyleSheet("color: white")
         about_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         about_label.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
