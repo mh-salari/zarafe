@@ -1,4 +1,4 @@
-# Zarafe
+# Zarafe <img src="resources/app_icon.ico" alt="zarafe" width="30" height="30">
 
 Zarafe is a video annotation tool designed for marking time events in eye tracking videos with gaze data visualization.
 
