@@ -503,7 +503,7 @@ class VideoAnnotator(QMainWindow):
                 # Draw green dot for gaze point (ensure coordinates are within image bounds)
                 if 0 <= x < w and 0 <= y < h:
                     cv2.circle(
-                        frame, (int(x), int(y)), 3, (255, 0, 0), -1
+                        frame, (int(x), int(y)), 3, (255, 0, 200), -1
                     )  # Green dot, smaller radius (2px), filled
 
         # Add target points if available for this frame (MODIFIED: smaller points, no lines)
@@ -512,12 +512,12 @@ class VideoAnnotator(QMainWindow):
 
             # Draw target point as small red dot (1px)
             x, y = points["target"]
-            cv2.circle(frame, (int(x), int(y)), 2, (0, 0, 255), -1)
+            cv2.circle(frame, (int(x), int(y)), 3, (0, 100, 255), -1)
 
             # Draw corner points as small blue dots (1px)
             for corner in ["top_left", "top_right", "bottom_left", "bottom_right"]:
                 x, y = points[corner]
-                cv2.circle(frame, (int(x), int(y)), 2, (0, 0, 255), -1)
+                cv2.circle(frame, (int(x), int(y)), 3, (0, 100, 255), -1)
 
             # No lines between the points as requested
 
