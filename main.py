@@ -2,7 +2,7 @@
 Filename:     main.py
 Author:       Mohammadhossein Salari, with assistance from Claude 3.7 Sonnet (Anthropic)
 Email:        mohammadhossein.salari@gmail.com
-Last Modified: 2025/03/11
+Last Modified: 2025/03/12
 Description:  Single-file implementation of Zarafe, a video annotation tool designed for marking
               time events in eye tracking videos with gaze data visualization. This standalone
               script handles all functionality including video loading, gaze data overlay,
@@ -29,6 +29,7 @@ from PyQt6.QtWidgets import (
     QSplitter,
     QSizePolicy,
     QDialog,
+    QComboBox,
 )
 from PyQt6.QtGui import (
     QImage,
@@ -112,12 +113,15 @@ class VideoAnnotator(QMainWindow):
         self.gaze_data = None
         self.frame_to_gaze = {}
 
+        # Target coordinates data
+        self.target_coordinates = {}
+
         # Timer for playback
         self.timer = QTimer()
         self.timer.timeout.connect(self.next_frame)
 
         # Annotation storage
-        self.events = []
+        self.events = []  # Each event will now have: name, start, end, type
         self.selected_event = None
         self.event_history = []  # For undo functionality
 
@@ -144,7 +148,7 @@ class VideoAnnotator(QMainWindow):
         self.open_dir_btn.clicked.connect(self.open_directory)
         left_layout.addWidget(self.open_dir_btn)
 
-        # Video navigation buttons 
+        # Video navigation buttons
         nav_layout = QHBoxLayout()
         self.prev_video_btn = QPushButton("Previous Video")
         self.prev_video_btn.clicked.connect(self.prev_video)
@@ -155,7 +159,7 @@ class VideoAnnotator(QMainWindow):
         left_layout.addLayout(nav_layout)
 
         # Video list
-        left_layout.addWidget(QLabel("Videos with worldCamera.mp4:"))
+        left_layout.addWidget(QLabel("Videos:"))
         self.video_list = QListWidget()
         self.video_list.itemClicked.connect(self.select_video)
         left_layout.addWidget(self.video_list)
@@ -206,7 +210,7 @@ class VideoAnnotator(QMainWindow):
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
 
-        # Events list 
+        # Events list
         right_layout.addWidget(QLabel("Events:"))
         self.events_list = QListWidget()
         self.events_list.setMaximumHeight(200)  # Limit height for 5-6 items
@@ -241,15 +245,27 @@ class VideoAnnotator(QMainWindow):
         button_row3.addWidget(self.delete_event_btn)
         button_row3.addWidget(self.save_events_btn)
 
+        # Add event type selector
+        type_layout = QHBoxLayout()
+        type_layout.addWidget(QLabel("Event Type:"))
+        self.event_type_combo = QComboBox()
+        # Add types based on your dataset's needs
+        self.event_type_combo.addItems(
+            ["default", "fixation", "saccade", "blink", "other"]
+        )
+        self.event_type_combo.currentTextChanged.connect(self.change_event_type)
+        type_layout.addWidget(self.event_type_combo)
+
         # Add all button rows
         event_controls.addLayout(button_row1)
         event_controls.addLayout(button_row2)
         event_controls.addLayout(button_row3)
+        event_controls.addLayout(type_layout)
 
         right_layout.addLayout(event_controls)
         right_layout.addStretch(1)  # Add stretch to keep controls at top
 
-        # Add "About" text link at the bottom 
+        # Add "About" text link at the bottom
         about_label = QLabel("About")
         about_label.setStyleSheet("color: white")
         about_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -297,13 +313,55 @@ class VideoAnnotator(QMainWindow):
         self.video_paths.clear()
         self.video_list.clear()
 
-        # Find all subdirectories with worldCamera.mp4
-        for entry in os.scandir(dir_path):
-            if entry.is_dir():
-                video_path = os.path.join(entry.path, "worldCamera.mp4")
-                if os.path.exists(video_path):
-                    self.video_paths.append(video_path)
-                    self.video_list.addItem(os.path.basename(entry.path))
+        # Modified to handle the user's specific directory structure
+        # Looking directly in subdirectories for videos
+        for subdir in os.scandir(dir_path):
+            if not subdir.is_dir():
+                continue
+
+            # Check for worldCamera.mp4 files directly in each subdirectory
+            for entry in os.scandir(subdir.path):
+                if entry.is_dir():
+                    video_path = os.path.join(entry.path, "worldCamera.mp4")
+                    if os.path.exists(video_path):
+                        self.video_paths.append(video_path)
+                        # Show subdirectory/recording structure
+                        display_name = f"{os.path.basename(subdir.path)}/{os.path.basename(entry.path)}"
+                        self.video_list.addItem(display_name)
+
+    def load_target_coordinates(self, video_dir):
+        """Load target coordinates from CSV file in the video directory"""
+        self.target_coordinates = {}  # Clear existing data
+
+        target_path = os.path.join(video_dir, "target_coordinates.csv")
+        if not os.path.exists(target_path):
+            print(f"No target coordinates found at {target_path}")
+            return
+
+        try:
+            df = pd.read_csv(target_path)
+
+            # Create a mapping from frame number to target coordinates
+            for _, row in df.iterrows():
+                frame = int(row["frame"])
+
+                # Store all points for this frame
+                self.target_coordinates[frame] = {
+                    "target": (float(row["target_x"]), float(row["target_y"])),
+                    "top_left": (float(row["top_left_x"]), float(row["top_left_y"])),
+                    "top_right": (float(row["top_right_x"]), float(row["top_right_y"])),
+                    "bottom_left": (
+                        float(row["bottom_left_x"]),
+                        float(row["bottom_left_y"]),
+                    ),
+                    "bottom_right": (
+                        float(row["bottom_right_x"]),
+                        float(row["bottom_right_y"]),
+                    ),
+                }
+
+        except Exception as e:
+            print(f"Error loading target coordinates: {e}")
 
     def select_video(self, item):
         index = self.video_list.row(item)
@@ -338,6 +396,7 @@ class VideoAnnotator(QMainWindow):
         self.selected_event = None
         self.event_history.clear()  # Clear undo history
         self.frame_to_gaze = {}  # Clear gaze data
+        self.target_coordinates = {}  # Clear target coordinates
 
         # Open the new video
         video_path = self.video_paths[index]
@@ -367,11 +426,14 @@ class VideoAnnotator(QMainWindow):
             except Exception as e:
                 print(f"Error loading gaze data: {e}")
 
+        # Load target coordinates if available
+        self.load_target_coordinates(video_dir)
+
         # Update UI
         self.display_frame()
 
         # Look for existing annotations
-        csv_path = os.path.splitext(video_path)[0] + "_events.csv"
+        csv_path = os.path.join(video_dir, "annotations.csv")
         if os.path.exists(csv_path):
             self.load_events(csv_path)
             # Save initial state for undo
@@ -441,8 +503,23 @@ class VideoAnnotator(QMainWindow):
                 # Draw green dot for gaze point (ensure coordinates are within image bounds)
                 if 0 <= x < w and 0 <= y < h:
                     cv2.circle(
-                        frame, (int(x), int(y)), 5, (0, 255, 0), -1
-                    )  # Green dot, radius 5, filled
+                        frame, (int(x), int(y)), 3, (255, 0, 0), -1
+                    )  # Green dot, smaller radius (2px), filled
+
+        # Add target points if available for this frame (MODIFIED: smaller points, no lines)
+        if self.current_frame in self.target_coordinates:
+            points = self.target_coordinates[self.current_frame]
+
+            # Draw target point as small red dot (1px)
+            x, y = points["target"]
+            cv2.circle(frame, (int(x), int(y)), 2, (0, 0, 255), -1)
+
+            # Draw corner points as small blue dots (1px)
+            for corner in ["top_left", "top_right", "bottom_left", "bottom_right"]:
+                x, y = points[corner]
+                cv2.circle(frame, (int(x), int(y)), 2, (0, 0, 255), -1)
+
+            # No lines between the points as requested
 
         # Convert frame to format suitable for Qt
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -521,6 +598,18 @@ class VideoAnnotator(QMainWindow):
         if len(self.event_history) > 20:
             self.event_history.pop(0)
 
+    def change_event_type(self, new_type):
+        if self.selected_event is None:
+            return
+
+        if 0 <= self.selected_event < len(self.events):
+            # Save current state for undo
+            self.save_event_state()
+
+            # Update the event type
+            self.events[self.selected_event]["type"] = new_type
+            self.update_event_list()
+
     def undo_action(self):
         """Undo the last event-related action"""
         if not self.event_history:
@@ -563,9 +652,16 @@ class VideoAnnotator(QMainWindow):
         # Save current state for undo
         self.save_event_state()
 
-        # Create new event with automatically assigned number
-        event_number = len(self.events) + 1
-        event = {"name": f"Event {event_number}", "start": -1, "end": -1}
+        # Create new event with automatically assigned number and type
+        # Use segment number based on existing events or create a new one
+        segment_number = len(self.events) + 1
+        event = {
+            "name": f"Segment {segment_number}",
+            "segment": segment_number,
+            "start": -1,
+            "end": -1,
+            "type": self.event_type_combo.currentText(),
+        }
         self.events.append(event)
         self.selected_event = len(self.events) - 1
         self.update_event_list()
@@ -574,6 +670,11 @@ class VideoAnnotator(QMainWindow):
         index = self.events_list.row(item)
         if 0 <= index < len(self.events):
             self.selected_event = index
+            # Update the type combo box to match the selected event's type
+            if "type" in self.events[index]:
+                type_idx = self.event_type_combo.findText(self.events[index]["type"])
+                if type_idx >= 0:
+                    self.event_type_combo.setCurrentIndex(type_idx)
 
     def mark_start(self):
         if self.cap is None:
@@ -644,7 +745,8 @@ class VideoAnnotator(QMainWindow):
 
             # Renumber all events
             for i, event in enumerate(self.events):
-                event["name"] = f"Event {i+1}"
+                event["name"] = f"Segment {i+1}"
+                event["segment"] = i + 1
 
             # Update selection
             if not self.events:
@@ -660,9 +762,12 @@ class VideoAnnotator(QMainWindow):
         for event in self.events:
             start_str = str(event["start"]) if event["start"] != -1 else "N/A"
             end_str = str(event["end"]) if event["end"] != -1 else "N/A"
-            self.events_list.addItem(
-                f"{event['name']}: Start={start_str}, End={end_str}"
-            )
+
+            # Include segment number and type if available
+            segment_str = str(event.get("segment", ""))
+
+            display_text = f"Segment {segment_str}: Type={event.get('type', 'default')}, Start={start_str}, End={end_str}"
+            self.events_list.addItem(display_text)
 
         # Select current event in the list
         if self.selected_event is not None:
@@ -678,10 +783,15 @@ class VideoAnnotator(QMainWindow):
         try:
             with open(csv_path, "w", newline="") as csvfile:
                 writer = csv.writer(csvfile)
-                writer.writerow(["Event", "Start Frame", "End Frame"])
+                writer.writerow(["Segment", "Start Frame", "End Frame", "Type"])
 
                 for event in self.events:
-                    writer.writerow([event["name"], event["start"], event["end"]])
+                    # Use explicit segment value or fall back to index-based segment
+                    segment = event.get("segment", 0)
+                    event_type = event.get(
+                        "type", "default"
+                    )  # Use default if type not specified
+                    writer.writerow([segment, event["start"], event["end"], event_type])
 
             QMessageBox.information(self, "Success", f"Events saved to {csv_path}")
         except Exception as e:
@@ -693,12 +803,23 @@ class VideoAnnotator(QMainWindow):
         try:
             with open(csv_path, "r") as csvfile:
                 reader = csv.reader(csvfile)
-                next(reader)  # Skip header
+                header = next(reader)  # Get header
 
-                for i, row in enumerate(reader):
-                    if len(row) >= 3:
+                # Determine if this is old or new format
+                has_type = len(header) >= 4 and header[3].lower() == "type"
+
+                for row in enumerate(reader):
+                    if (
+                        len(row[1]) >= 3
+                    ):  # Need at least 3 columns for segment, start, end
+                        row = row[1]  # Get the actual row data (not the index)
+
+                        # Get the segment number from the CSV
+                        segment = int(row[0])
+
                         event = {
-                            "name": f"Event {i+1}",  # Force consistent naming
+                            "name": f"Segment {segment}",
+                            "segment": segment,
                             "start": (
                                 int(row[1])
                                 if row[1] != "-1" and row[1] != "N/A"
@@ -710,6 +831,13 @@ class VideoAnnotator(QMainWindow):
                                 else -1
                             ),
                         }
+
+                        # Add type if available in the CSV
+                        if has_type and len(row) >= 4:
+                            event["type"] = row[3]
+                        else:
+                            event["type"] = "default"
+
                         self.events.append(event)
 
             self.update_event_list()
@@ -718,6 +846,12 @@ class VideoAnnotator(QMainWindow):
             if self.events:
                 self.selected_event = 0
                 self.events_list.setCurrentRow(0)
+
+                # Update the type combo box to match the selected event's type
+                if "type" in self.events[0]:
+                    type_idx = self.event_type_combo.findText(self.events[0]["type"])
+                    if type_idx >= 0:
+                        self.event_type_combo.setCurrentIndex(type_idx)
 
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Error loading events: {e}")
