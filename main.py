@@ -313,6 +313,8 @@ class VideoAnnotator(QMainWindow):
         self.video_paths.clear()
         self.video_list.clear()
 
+        video_entries = []
+
         # Modified to handle the user's specific directory structure
         # Looking directly in subdirectories for videos
         for subdir in os.scandir(dir_path):
@@ -324,10 +326,17 @@ class VideoAnnotator(QMainWindow):
                 if entry.is_dir():
                     video_path = os.path.join(entry.path, "worldCamera.mp4")
                     if os.path.exists(video_path):
-                        self.video_paths.append(video_path)
-                        # Show subdirectory/recording structure
+                        # Store both the video path and display name in a list
                         display_name = f"{os.path.basename(subdir.path)}/{os.path.basename(entry.path)}"
-                        self.video_list.addItem(display_name)
+                        video_entries.append((video_path, display_name))
+
+        # Sort video entries by the directory and subdirectory names
+        video_entries.sort(key=lambda x: x[0])  # Sort by file path
+
+        # Add sorted items to video_paths and video_list
+        for video_path, display_name in video_entries:
+            self.video_paths.append(video_path)
+            self.video_list.addItem(display_name)
 
     def load_target_coordinates(self, video_dir):
         """Load target coordinates from CSV file in the video directory"""
@@ -498,13 +507,23 @@ class VideoAnnotator(QMainWindow):
 
         # Add gaze points if available for this frame
         if self.current_frame in self.frame_to_gaze:
-            for x, y in self.frame_to_gaze[self.current_frame]:
-                h, w = frame.shape[:2]
-                # Draw green dot for gaze point (ensure coordinates are within image bounds)
+            gaze_points = self.frame_to_gaze[self.current_frame]
+            h, w = frame.shape[:2]
+            
+            # Process all gaze points in the current frame
+            for i, (x, y) in enumerate(gaze_points):
+                # Ensure coordinates are within image bounds
                 if 0 <= x < w and 0 <= y < h:
-                    cv2.circle(
-                        frame, (int(x), int(y)), 3, (255, 0, 200), -1
-                    )  # Green dot, smaller radius (2px), filled
+                    if i == 0:  # First gaze point is solid color with hollow circle
+                        # Draw hollow circle (outer border)
+                        cv2.circle(frame, (int(x), int(y)), 10, (255, 0, 200), 2)  # Magenta hollow circle
+                    else:  # Other gaze points are transparent
+                        # Create a transparent overlay
+                        overlay = frame.copy()
+                        cv2.circle(overlay, (int(x), int(y)), 10, (255, 0, 200), 2)  # Magenta hollow circle
+                        # Apply transparency
+                        alpha = 0.4  # Transparency factor (40% visible)
+                        cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
 
         # Add target points if available for this frame (MODIFIED: smaller points, no lines)
         if self.current_frame in self.target_coordinates:
@@ -777,8 +796,8 @@ class VideoAnnotator(QMainWindow):
         if self.cap is None or self.current_video_index < 0:
             return
 
-        video_path = self.video_paths[self.current_video_index]
-        csv_path = os.path.splitext(video_path)[0] + "_events.csv"
+        video_dir = os.path.dirname(self.video_paths[self.current_video_index])
+        csv_path = os.path.join(video_dir, "annotations.csv")
 
         try:
             with open(csv_path, "w", newline="") as csvfile:
