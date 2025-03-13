@@ -58,4 +58,4 @@ This project has received funding from the European Union's Horizon Europe resea
 <img src="resources/Funded_by_EU_Eyes4ICU.png" alt="Funded by EU Eyes4ICU" width="500">
 </p>
 
-Giraffe icon downloaded from <a href="https://www.flaticon.com/free-icons/giraffe" title="giraffe icons">Flaticon, created by smalllikeart</a>
+Giraffe icon downloaded from <a href="https://www.flaticon.com/free-icons/giraffe" title="giraffe icons">Giraffe icons created by Freepik - Flaticon</a>
