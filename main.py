@@ -250,6 +250,25 @@ class VideoAnnotator(QMainWindow):
         right_layout.addLayout(event_controls)
         right_layout.addStretch(1)  # Add stretch to keep controls at top
 
+        # Add keyboard shortcuts above the About link
+        shortcuts_label = QLabel("<h4>Keyboard Shortcuts</h4>")
+        shortcuts_label.setStyleSheet("color: white")
+        shortcuts_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        right_layout.addWidget(shortcuts_label)
+        
+        # Keyboard shortcuts list
+        shortcuts_text = QLabel(
+            "Space: Play/Pause\n"
+            "Left Arrow: Previous Frame\n"
+            "Right Arrow: Next Frame\n"
+            "Shift+Left Arrow: Jump 10 Frames Back\n"
+            "Shift+Right Arrow: Jump 10 Frames Forward\n"
+            "Ctrl+Z: Undo Action"
+        )
+        shortcuts_text.setStyleSheet("color: white")
+        shortcuts_text.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        right_layout.addWidget(shortcuts_text)
+
         # Add "About" text link at the bottom 
         about_label = QLabel("About")
         about_label.setStyleSheet("color: white")
