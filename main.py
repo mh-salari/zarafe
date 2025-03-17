@@ -2,7 +2,7 @@
 Filename:     main.py
 Author:       Mohammadhossein Salari, with assistance from Claude 3.7 Sonnet (Anthropic)
 Email:        mohammadhossein.salari@gmail.com
-Last Modified: 2025/03/11
+
 Description:  Single-file implementation of Zarafe, a video annotation tool designed for marking
               time events in eye tracking videos with gaze data visualization. This standalone
               script handles all functionality including video loading, gaze data overlay,
@@ -120,6 +120,7 @@ class VideoAnnotator(QMainWindow):
         self.events = []
         self.selected_event = None
         self.event_history = []  # For undo functionality
+        self.has_unsaved_changes = False  # Track unsaved changes
 
         # Set application icon
         icon_path = os.path.join(os.path.dirname(__file__), "resources", "app_icon.ico")
@@ -155,7 +156,7 @@ class VideoAnnotator(QMainWindow):
         left_layout.addLayout(nav_layout)
 
         # Video list
-        left_layout.addWidget(QLabel("Videos with worldCamera.mp4:"))
+        left_layout.addWidget(QLabel("Videos:"))
         self.video_list = QListWidget()
         self.video_list.itemClicked.connect(self.select_video)
         left_layout.addWidget(self.video_list)
@@ -322,6 +323,7 @@ class VideoAnnotator(QMainWindow):
     def select_video(self, item):
         index = self.video_list.row(item)
         if 0 <= index < len(self.video_paths):
+            # load_video will check for unsaved changes
             self.load_video(index)
 
     def next_video(self):
@@ -340,7 +342,35 @@ class VideoAnnotator(QMainWindow):
             self.load_video(self.current_video_index - 1)
             self.video_list.setCurrentRow(self.current_video_index)
 
+    def check_unsaved_changes(self):
+        """Check if there are unsaved changes and prompt user to save"""
+        if not self.has_unsaved_changes:
+            return True
+
+        reply = QMessageBox.question(
+            self,
+            "Unsaved Changes",
+            "You have unsaved changes. Would you like to save them?",
+            QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Save
+        )
+
+        if reply == QMessageBox.StandardButton.Save:
+            # Save changes
+            self.save_events()
+            return True
+        elif reply == QMessageBox.StandardButton.Discard:
+            # Proceed without saving
+            return True
+        else:
+            # Cancel the operation
+            return False
+
     def load_video(self, index):
+        # Check for unsaved changes before loading a new video
+        if self.cap is not None and not self.check_unsaved_changes():
+            return
+
         # Clean up existing video
         if self.cap is not None:
             self.cap.release()
@@ -352,6 +382,7 @@ class VideoAnnotator(QMainWindow):
         self.selected_event = None
         self.event_history.clear()  # Clear undo history
         self.frame_to_gaze = {}  # Clear gaze data
+        self.has_unsaved_changes = False  # Reset unsaved changes flag
 
         # Open the new video
         video_path = self.video_paths[index]
@@ -545,6 +576,10 @@ class VideoAnnotator(QMainWindow):
 
         # Restore previous state
         self.events = self.event_history.pop()
+        
+        # Mark as having unsaved changes
+        if self.events:
+            self.has_unsaved_changes = True
 
         # Update UI
         self.update_event_list()
@@ -582,6 +617,7 @@ class VideoAnnotator(QMainWindow):
         event = {"name": f"Event {event_number}", "start": -1, "end": -1}
         self.events.append(event)
         self.selected_event = len(self.events) - 1
+        self.has_unsaved_changes = True
         self.update_event_list()
 
     def select_event(self, item):
@@ -615,6 +651,7 @@ class VideoAnnotator(QMainWindow):
             return
 
         self.events[self.selected_event]["start"] = self.current_frame
+        self.has_unsaved_changes = True
         self.update_event_list()
 
     def mark_end(self):
@@ -643,6 +680,7 @@ class VideoAnnotator(QMainWindow):
             return
 
         self.events[self.selected_event]["end"] = self.current_frame
+        self.has_unsaved_changes = True
         self.update_event_list()
 
     def delete_event(self):
@@ -666,6 +704,7 @@ class VideoAnnotator(QMainWindow):
             elif self.selected_event >= len(self.events):
                 self.selected_event = len(self.events) - 1
 
+            self.has_unsaved_changes = True
             self.update_event_list()
 
     def update_event_list(self):
@@ -697,6 +736,7 @@ class VideoAnnotator(QMainWindow):
                 for event in self.events:
                     writer.writerow([event["name"], event["start"], event["end"]])
 
+            self.has_unsaved_changes = False
             QMessageBox.information(self, "Success", f"Events saved to {csv_path}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to save events: {str(e)}")
@@ -726,6 +766,9 @@ class VideoAnnotator(QMainWindow):
                         }
                         self.events.append(event)
 
+            # Reset unsaved changes flag since we just loaded from disk
+            self.has_unsaved_changes = False
+            
             self.update_event_list()
 
             # Set first event as selected if available
@@ -747,6 +790,23 @@ class VideoAnnotator(QMainWindow):
             super().keyPressEvent(event)
 
     def closeEvent(self, event):
+        # Check for unsaved changes before closing
+        if self.has_unsaved_changes:
+            reply = QMessageBox.question(
+                self,
+                "Unsaved Changes",
+                "You have unsaved changes. Would you like to save them before exiting?",
+                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save
+            )
+
+            if reply == QMessageBox.StandardButton.Save:
+                self.save_events()
+            elif reply == QMessageBox.StandardButton.Cancel:
+                event.ignore()
+                return
+
+        # Clean up resources
         if self.cap is not None:
             self.cap.release()
         event.accept()
