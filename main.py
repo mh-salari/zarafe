@@ -780,10 +780,30 @@ class VideoAnnotator(QMainWindow):
             QMessageBox.warning(self, "Error", f"Error loading events: {e}")
 
     def keyPressEvent(self, event: QKeyEvent):
+        modifiers = event.modifiers()
+        
         if event.key() == Qt.Key.Key_Right:
-            self.next_frame()
+            if modifiers & Qt.KeyboardModifier.ShiftModifier:
+                # Jump 10 frames forward with Shift+Right
+                for _ in range(10):
+                    if self.current_frame < self.total_frames - 1:
+                        self.current_frame += 1
+                    else:
+                        break
+                self.display_frame()
+            else:
+                self.next_frame()
         elif event.key() == Qt.Key.Key_Left:
-            self.prev_frame()
+            if modifiers & Qt.KeyboardModifier.ShiftModifier:
+                # Jump 10 frames backward with Shift+Left
+                for _ in range(10):
+                    if self.current_frame > 0:
+                        self.current_frame -= 1
+                    else:
+                        break
+                self.display_frame()
+            else:
+                self.prev_frame()
         elif event.key() == Qt.Key.Key_Space:
             self.toggle_play()
         else:
