@@ -297,13 +297,27 @@ class VideoAnnotator(QMainWindow):
         self.video_paths.clear()
         self.video_list.clear()
 
+        video_entries = []
+
         # Find all subdirectories with worldCamera.mp4
         for entry in os.scandir(dir_path):
             if entry.is_dir():
                 video_path = os.path.join(entry.path, "worldCamera.mp4")
                 if os.path.exists(video_path):
-                    self.video_paths.append(video_path)
-                    self.video_list.addItem(os.path.basename(entry.path))
+                    # self.video_paths.append(video_path)
+                    # self.video_list.addItem(os.path.basename(entry.path))
+                    # Store both the video path and display name in a list
+                    display_name = f"{os.path.basename(entry.path)}"
+                    video_entries.append((video_path, display_name))
+
+        # Sort video entries by the directory and subdirectory names
+        video_entries.sort(key=lambda x: x[0])  # Sort by file path
+
+        # Add sorted items to video_paths and video_list
+        for video_path, display_name in video_entries:
+            self.video_paths.append(video_path)
+            self.video_list.addItem(display_name)
+
 
     def select_video(self, item):
         index = self.video_list.row(item)
