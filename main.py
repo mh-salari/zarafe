@@ -263,7 +263,7 @@ class VideoAnnotator(QMainWindow):
             "Right Arrow: Next Frame\n"
             "Shift+Left Arrow: Jump 10 Frames Back\n"
             "Shift+Right Arrow: Jump 10 Frames Forward\n"
-            "Ctrl+Z: Undo Action"
+            "Ctrl+Z: Undo Action\n"
         )
         shortcuts_text.setStyleSheet("color: white")
         shortcuts_text.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -271,8 +271,8 @@ class VideoAnnotator(QMainWindow):
 
         # Add "About" text link at the bottom 
         about_label = QLabel("About")
-        about_label.setStyleSheet("color: white")
-        about_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        about_label.setStyleSheet("color: white; text-decoration: underline;")
+        about_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         about_label.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         # Use a lambda for the click event
