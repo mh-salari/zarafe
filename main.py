@@ -440,7 +440,7 @@ class VideoAnnotator(QMainWindow):
         self.display_frame()
 
         # Look for existing annotations
-        csv_path = os.path.splitext(video_path)[0] + "_events.csv"
+        csv_path = os.path.join(video_dir, "events.csv") 
         if os.path.exists(csv_path):
             self.load_events(csv_path)
             # Save initial state for undo
@@ -768,8 +768,9 @@ class VideoAnnotator(QMainWindow):
         if self.cap is None or self.current_video_index < 0:
             return
 
-        video_path = self.video_paths[self.current_video_index]
-        csv_path = os.path.splitext(video_path)[0] + "_events.csv"
+        video_dir = os.path.dirname(self.video_paths[self.current_video_index])
+        csv_path = os.path.join(video_dir, "events.csv") 
+
 
         try:
             with open(csv_path, "w", newline="") as csvfile:
