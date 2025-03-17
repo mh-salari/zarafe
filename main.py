@@ -264,6 +264,7 @@ class VideoAnnotator(QMainWindow):
             "Shift+Left Arrow: Jump 10 Frames Back\n"
             "Shift+Right Arrow: Jump 10 Frames Forward\n"
             "Ctrl+Z: Undo Action\n"
+            "Ctrl+S: Save Events\n"
         )
         shortcuts_text.setStyleSheet("color: white")
         shortcuts_text.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -308,6 +309,10 @@ class VideoAnnotator(QMainWindow):
         # Ctrl+Z for undo
         self.undo_shortcut = QShortcut(QKeySequence("Ctrl+Z"), self)
         self.undo_shortcut.activated.connect(self.undo_action)
+        
+        # Ctrl+S for save
+        self.save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
+        self.save_shortcut.activated.connect(self.save_events)
 
     def open_directory(self):
         dir_path = QFileDialog.getExistingDirectory(self, "Select Directory")
@@ -507,6 +512,25 @@ class VideoAnnotator(QMainWindow):
                     cv2.circle(
                         frame, (int(x), int(y)), 5, (0, 255, 0), -1
                     )  # Green dot, radius 5, filled
+
+        # Check if current frame is within any event, and add purple border if it is
+        frame_in_event = False
+        for event in self.events:
+            if (event["start"] != -1 and event["end"] != -1 and 
+                event["start"] <= self.current_frame <= event["end"]):
+                frame_in_event = True
+                break
+        
+        # Add purple border if frame is in an event
+        if frame_in_event:
+            h, w = frame.shape[:2]
+            border_thickness = 1
+            frame = cv2.copyMakeBorder(
+                frame, 
+                border_thickness, border_thickness, border_thickness, border_thickness, 
+                cv2.BORDER_CONSTANT, 
+                value=(123, 171, 61) 
+            )
 
         # Convert frame to format suitable for Qt
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
