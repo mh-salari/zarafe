@@ -41,6 +41,15 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtCore import Qt, QTimer
 
+import re
+
+
+def natural_sort_key(s):
+    return [
+        int(text) if text.isdigit() else text.lower()
+        for text in re.split(r"(\d+)", s[0])
+    ]
+
 
 class AboutDialog(QDialog):
     def __init__(self, parent=None):
@@ -145,7 +154,7 @@ class VideoAnnotator(QMainWindow):
         self.open_dir_btn.clicked.connect(self.open_directory)
         left_layout.addWidget(self.open_dir_btn)
 
-        # Video navigation buttons 
+        # Video navigation buttons
         nav_layout = QHBoxLayout()
         self.prev_video_btn = QPushButton("Previous Video")
         self.prev_video_btn.clicked.connect(self.prev_video)
@@ -207,7 +216,7 @@ class VideoAnnotator(QMainWindow):
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
 
-        # Events list 
+        # Events list
         right_layout.addWidget(QLabel("Events:"))
         self.events_list = QListWidget()
         self.events_list.setMaximumHeight(200)  # Limit height for 5-6 items
@@ -255,7 +264,7 @@ class VideoAnnotator(QMainWindow):
         shortcuts_label.setStyleSheet("color: white")
         shortcuts_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         right_layout.addWidget(shortcuts_label)
-        
+
         # Keyboard shortcuts list
         shortcuts_text = QLabel(
             "Space: Play/Pause\n"
@@ -270,7 +279,7 @@ class VideoAnnotator(QMainWindow):
         shortcuts_text.setAlignment(Qt.AlignmentFlag.AlignLeft)
         right_layout.addWidget(shortcuts_text)
 
-        # Add "About" text link at the bottom 
+        # Add "About" text link at the bottom
         about_label = QLabel("About")
         about_label.setStyleSheet("color: white; text-decoration: underline;")
         about_label.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -309,7 +318,7 @@ class VideoAnnotator(QMainWindow):
         # Ctrl+Z for undo
         self.undo_shortcut = QShortcut(QKeySequence("Ctrl+Z"), self)
         self.undo_shortcut.activated.connect(self.undo_action)
-        
+
         # Ctrl+S for save
         self.save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
         self.save_shortcut.activated.connect(self.save_events)
@@ -336,13 +345,12 @@ class VideoAnnotator(QMainWindow):
                     video_entries.append((video_path, display_name))
 
         # Sort video entries by the directory and subdirectory names
-        video_entries.sort(key=lambda x: x[0])  # Sort by file path
+        video_entries.sort(key=natural_sort_key)
 
         # Add sorted items to video_paths and video_list
         for video_path, display_name in video_entries:
             self.video_paths.append(video_path)
             self.video_list.addItem(display_name)
-
 
     def select_video(self, item):
         index = self.video_list.row(item)
@@ -375,8 +383,10 @@ class VideoAnnotator(QMainWindow):
             self,
             "Unsaved Changes",
             "You have unsaved changes. Would you like to save them?",
-            QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Save
+            | QMessageBox.StandardButton.Discard
+            | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Save,
         )
 
         if reply == QMessageBox.StandardButton.Save:
@@ -440,7 +450,7 @@ class VideoAnnotator(QMainWindow):
         self.display_frame()
 
         # Look for existing annotations
-        csv_path = os.path.join(video_dir, "events.csv") 
+        csv_path = os.path.join(video_dir, "events.csv")
         if os.path.exists(csv_path):
             self.load_events(csv_path)
             # Save initial state for undo
@@ -516,20 +526,26 @@ class VideoAnnotator(QMainWindow):
         # Check if current frame is within any event, and add purple border if it is
         frame_in_event = False
         for event in self.events:
-            if (event["start"] != -1 and event["end"] != -1 and 
-                event["start"] <= self.current_frame <= event["end"]):
+            if (
+                event["start"] != -1
+                and event["end"] != -1
+                and event["start"] <= self.current_frame <= event["end"]
+            ):
                 frame_in_event = True
                 break
-        
+
         # Add purple border if frame is in an event
         if frame_in_event:
             h, w = frame.shape[:2]
             border_thickness = 1
             frame = cv2.copyMakeBorder(
-                frame, 
-                border_thickness, border_thickness, border_thickness, border_thickness, 
-                cv2.BORDER_CONSTANT, 
-                value=(123, 171, 61) 
+                frame,
+                border_thickness,
+                border_thickness,
+                border_thickness,
+                border_thickness,
+                cv2.BORDER_CONSTANT,
+                value=(123, 171, 61),
             )
 
         # Convert frame to format suitable for Qt
@@ -619,7 +635,7 @@ class VideoAnnotator(QMainWindow):
 
         # Restore previous state
         self.events = self.event_history.pop()
-        
+
         # Mark as having unsaved changes
         if self.events:
             self.has_unsaved_changes = True
@@ -769,8 +785,7 @@ class VideoAnnotator(QMainWindow):
             return
 
         video_dir = os.path.dirname(self.video_paths[self.current_video_index])
-        csv_path = os.path.join(video_dir, "events.csv") 
-
+        csv_path = os.path.join(video_dir, "events.csv")
 
         try:
             with open(csv_path, "w", newline="") as csvfile:
@@ -812,7 +827,7 @@ class VideoAnnotator(QMainWindow):
 
             # Reset unsaved changes flag since we just loaded from disk
             self.has_unsaved_changes = False
-            
+
             self.update_event_list()
 
             # Set first event as selected if available
@@ -825,7 +840,7 @@ class VideoAnnotator(QMainWindow):
 
     def keyPressEvent(self, event: QKeyEvent):
         modifiers = event.modifiers()
-        
+
         if event.key() == Qt.Key.Key_Right:
             if modifiers & Qt.KeyboardModifier.ShiftModifier:
                 # Jump 10 frames forward with Shift+Right
@@ -860,8 +875,10 @@ class VideoAnnotator(QMainWindow):
                 self,
                 "Unsaved Changes",
                 "You have unsaved changes. Would you like to save them before exiting?",
-                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
                 QMessageBox.StandardButton.Save
+                | QMessageBox.StandardButton.Discard
+                | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save,
             )
 
             if reply == QMessageBox.StandardButton.Save:
