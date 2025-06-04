@@ -510,6 +510,11 @@ class VideoAnnotator(QMainWindow):
         # Update UI
         self.display_frame()
 
+        # Load metadata if available
+        metadata_path = os.path.join(video_dir, "metadata.csv")
+        if os.path.exists(metadata_path):
+            self.load_metadata_csv(metadata_path)
+
         # Look for existing annotations
         csv_path = os.path.join(video_dir, "events.csv")
         if os.path.exists(csv_path):
@@ -924,15 +929,15 @@ class VideoAnnotator(QMainWindow):
                 ]
                 rows_to_write.append(na_row)
 
-            # Sort rows by monitor_id
-            rows_to_write.sort(key=lambda x: x[4])  # Sort by monitor_id column
+            # Sort rows by start
+            rows_to_write.sort(key=lambda x: x[6])  # Sort by start column
 
             # Write to CSV
             with open(csv_path, "w", newline="") as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerow([
                     "participant_id", "file_name", "condition", "series_title",
-                    "monitor_id", "event_type", "start_time", "end_time", "duration"
+                    "monitor_id", "event_type", "start_frame", "end_frame", "duration"
                 ])
                 writer.writerows(rows_to_write)
 
@@ -947,24 +952,9 @@ class VideoAnnotator(QMainWindow):
         try:
             with open(csv_path, "r") as csvfile:
                 reader = csv.DictReader(csvfile)
-                
-                # Load metadata from first row if available
-                first_row = None
-                
-                for row in reader:
-                    if first_row is None:
-                        first_row = row
-                        # Load metadata from CSV
-                        self.metadata['participant_id'] = row.get('participant_id', '')
-                        self.metadata['condition'] = row.get('condition', '')
-                        self.metadata['series_title'] = row.get('series_title', '')
-                        # file_name is already auto-filled from directory
-                        
-                        # Update UI with loaded metadata
-                        self.participant_id_input.setText(self.metadata['participant_id'])
-                        self.condition_combo.setCurrentText(self.metadata['condition'])
-                        self.series_title_input.setText(self.metadata['series_title'])
-                    
+
+                for row in reader:     
+
                     # Skip N.A. entries
                     if row.get('event_type', '') == 'N.A.':
                         continue
@@ -981,13 +971,13 @@ class VideoAnnotator(QMainWindow):
                         continue  # Skip unknown event types
                     
                     # Parse start and end times
-                    start_time = row.get('start_time', 'N.A.')
-                    end_time = row.get('end_time', 'N.A.')
+                    start_frame = row.get('start_frame', 'N.A.')
+                    end_frame = row.get('end_frame', 'N.A.')
                     
                     event = {
                         "name": event_name,
-                        "start": int(start_time) if start_time not in ['-1', 'N.A.'] else -1,
-                        "end": int(end_time) if end_time not in ['-1', 'N.A.'] else -1
+                        "start": int(start_frame) if start_frame not in ['-1', 'N.A.'] else -1,
+                        "end": int(end_frame) if end_frame not in ['-1', 'N.A.'] else -1
                     }
                     self.events.append(event)
 
@@ -1003,6 +993,43 @@ class VideoAnnotator(QMainWindow):
 
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Error loading events: {e}")
+
+    def update_metadata_ui(self):
+        """Update metadata UI fields with current metadata values"""
+
+        # Update UI with current metadata
+        self.participant_id_input.setText(self.metadata['participant_id'])
+        self.condition_combo.setCurrentText(self.metadata['condition'])
+        self.series_title_input.setText(self.metadata['series_title'])
+
+    def load_metadata_csv(self, metadata_path):
+        """Load metadata from CSV file and prefill UI fields"""
+        try:
+            with open(metadata_path, "r") as csvfile:
+                reader = csv.DictReader(csvfile)
+                
+                # Read the first (and likely only) row
+                for row in reader:
+                    # Load metadata fields
+                    self.metadata['participant_id'] = row.get('participant_id', '')
+                    self.metadata['condition'] = row.get('condition', '')
+                    self.metadata['series_title'] = row.get('series_title', '')
+                    # file_name is already auto-filled from directory
+
+                    self.metadata['M1'] = row.get('monitor_1_image', '')
+                    self.metadata['M2'] = row.get('monitor_2_image', '')
+                    self.metadata['M3'] = row.get('monitor_3_image', '')
+                    self.metadata['M4'] = row.get('monitor_4_image', '')
+                    
+                    # Only process the first row
+                    break
+                    
+            # Update UI after loading metadata
+            self.update_metadata_ui()
+                    
+        except Exception as e:
+            print(f"Error loading metadata CSV: {e}")
+            # Don't show error dialog since this is optional functionality
 
     def keyPressEvent(self, event: QKeyEvent):
         modifiers = event.modifiers()
