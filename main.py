@@ -3,10 +3,9 @@ Filename:     main.py
 Author:       Mohammadhossein Salari, with assistance from Claude 3.7 Sonnet (Anthropic)
 Email:        mohammadhossein.salari@gmail.com
 
-Description:  Single-file implementation of Zarafe, a video annotation tool designed for marking
-              time events in eye tracking videos with gaze data visualization. This standalone
-              script handles all functionality including video loading, gaze data overlay,
-              event annotation creation/management, and export functionality.
+Description:  Modified version for muisti branch - Video annotation tool for marking
+              approach/viewing events for monitors M1-M4 in eye tracking studies.
+              Includes metadata fields and specialized event types.
 """
 
 import sys
@@ -29,6 +28,10 @@ from PyQt6.QtWidgets import (
     QSplitter,
     QSizePolicy,
     QDialog,
+    QLineEdit,
+    QComboBox,
+    QGridLayout,
+    QGroupBox,
 )
 from PyQt6.QtGui import (
     QImage,
@@ -60,13 +63,14 @@ class AboutDialog(QDialog):
         layout = QVBoxLayout()
 
         # Title
-        title_label = QLabel("<h2>Video Annotation Tool</h2>")
+        title_label = QLabel("<h2>Video Annotation Tool - Muisti Version</h2>")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
 
         # Description text
         desc_text = QLabel(
             "<p>Developed by Mohammadhossein Salari with the assistance of Claude 3.7 Sonnet.</p>"
+            "<p>Modified for monitor approach/viewing event annotation.</p>"
             "<p>For more information and source code, please visit:<br>"
             "<a href='https://github.com/mh-salari/zarafe'>https://github.com/mh-salari/zarafe</a></p>"
             "<h3>Acknowledgments</h3>"
@@ -131,6 +135,22 @@ class VideoAnnotator(QMainWindow):
         self.event_history = []  # For undo functionality
         self.has_unsaved_changes = False  # Track unsaved changes
 
+        # Metadata fields
+        self.metadata = {
+            'participant_id': '',
+            'condition': '',
+            'series_title': '',
+            'file_name': ''
+        }
+
+        # Predefined event types
+        self.event_types = [
+            "Approach to M1", "Viewing M1",
+            "Approach to M2", "Viewing M2",
+            "Approach to M3", "Viewing M3",
+            "Approach to M4", "Viewing M4"
+        ]
+
         # Set application icon
         icon_path = os.path.join(os.path.dirname(__file__), "resources", "app_icon.ico")
         if os.path.exists(icon_path):
@@ -140,7 +160,7 @@ class VideoAnnotator(QMainWindow):
         self.showMaximized()
 
     def setup_ui(self):
-        self.setWindowTitle("Zarafe")
+        self.setWindowTitle("Zarafe - Muisti Version")
 
         # Create main splitter
         main_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -216,6 +236,47 @@ class VideoAnnotator(QMainWindow):
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
 
+        # Metadata fields group
+        metadata_group = QGroupBox("Session Metadata")
+        metadata_layout = QGridLayout()
+
+        # Participant ID
+        metadata_layout.addWidget(QLabel("Participant ID:"), 0, 0)
+        self.participant_id_input = QLineEdit()
+        self.participant_id_input.textChanged.connect(lambda text: self.update_metadata('participant_id', text))
+        metadata_layout.addWidget(self.participant_id_input, 0, 1)
+
+        # Condition
+        metadata_layout.addWidget(QLabel("Condition:"), 1, 0)
+        self.condition_combo = QComboBox()
+        self.condition_combo.addItems(["", "Dark", "Timed Dark", "Normal"])
+        self.condition_combo.currentTextChanged.connect(lambda text: self.update_metadata('condition', text))
+        metadata_layout.addWidget(self.condition_combo, 1, 1)
+
+        # Series Title
+        metadata_layout.addWidget(QLabel("Series Title:"), 2, 0)
+        self.series_title_input = QLineEdit()
+        self.series_title_input.textChanged.connect(lambda text: self.update_metadata('series_title', text))
+        metadata_layout.addWidget(self.series_title_input, 2, 1)
+
+        metadata_group.setLayout(metadata_layout)
+        right_layout.addWidget(metadata_group)
+
+        # Event creation dropdown
+        event_creation_layout = QVBoxLayout()
+        event_creation_layout.addWidget(QLabel("Create Event:"))
+        
+        self.event_type_combo = QComboBox()
+        self.event_type_combo.addItem("Select event type...")
+        self.event_type_combo.addItems(self.event_types)
+        event_creation_layout.addWidget(self.event_type_combo)
+
+        self.create_event_btn = QPushButton("Create Selected Event")
+        self.create_event_btn.clicked.connect(self.create_event)
+        event_creation_layout.addWidget(self.create_event_btn)
+
+        right_layout.addLayout(event_creation_layout)
+
         # Events list
         right_layout.addWidget(QLabel("Events:"))
         self.events_list = QListWidget()
@@ -229,32 +290,25 @@ class VideoAnnotator(QMainWindow):
 
         # Button row 1
         button_row1 = QHBoxLayout()
-        self.new_event_btn = QPushButton("New Event")
-        self.new_event_btn.clicked.connect(self.new_event)
-        button_row1.addWidget(self.new_event_btn)
-
-        # Button row 2
-        button_row2 = QHBoxLayout()
         self.mark_start_btn = QPushButton("Mark Start")
         self.mark_start_btn.clicked.connect(self.mark_start)
         self.mark_end_btn = QPushButton("Mark End")
         self.mark_end_btn.clicked.connect(self.mark_end)
-        button_row2.addWidget(self.mark_start_btn)
-        button_row2.addWidget(self.mark_end_btn)
+        button_row1.addWidget(self.mark_start_btn)
+        button_row1.addWidget(self.mark_end_btn)
 
-        # Button row 3
-        button_row3 = QHBoxLayout()
+        # Button row 2
+        button_row2 = QHBoxLayout()
         self.delete_event_btn = QPushButton("Delete Event")
         self.delete_event_btn.clicked.connect(self.delete_event)
         self.save_events_btn = QPushButton("Save Events")
         self.save_events_btn.clicked.connect(self.save_events)
-        button_row3.addWidget(self.delete_event_btn)
-        button_row3.addWidget(self.save_events_btn)
+        button_row2.addWidget(self.delete_event_btn)
+        button_row2.addWidget(self.save_events_btn)
 
         # Add all button rows
         event_controls.addLayout(button_row1)
         event_controls.addLayout(button_row2)
-        event_controls.addLayout(button_row3)
 
         right_layout.addLayout(event_controls)
         right_layout.addStretch(1)  # Add stretch to keep controls at top
@@ -310,6 +364,12 @@ class VideoAnnotator(QMainWindow):
         # Enable keyboard focus for arrow key navigation
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
+    def update_metadata(self, field, value):
+        """Update metadata field and mark as having unsaved changes"""
+        self.metadata[field] = value
+        if self.cap is not None:  # Only mark as unsaved if a video is loaded
+            self.has_unsaved_changes = True
+
     def show_about_dialog(self):
         about_dialog = AboutDialog(self)
         about_dialog.exec()
@@ -338,8 +398,6 @@ class VideoAnnotator(QMainWindow):
             if entry.is_dir():
                 video_path = os.path.join(entry.path, "worldCamera.mp4")
                 if os.path.exists(video_path):
-                    # self.video_paths.append(video_path)
-                    # self.video_list.addItem(os.path.basename(entry.path))
                     # Store both the video path and display name in a list
                     display_name = f"{os.path.basename(entry.path)}"
                     video_entries.append((video_path, display_name))
@@ -437,6 +495,9 @@ class VideoAnnotator(QMainWindow):
         # Update timeline slider
         self.timeline_slider.setMaximum(self.total_frames - 1)
         self.timeline_slider.setValue(0)
+
+        # Auto-fill file name from directory
+        self.metadata['file_name'] = os.path.basename(video_dir)
 
         # Load gaze data if available
         gaze_path = os.path.join(video_dir, "gazeData.tsv")
@@ -650,33 +711,45 @@ class VideoAnnotator(QMainWindow):
         else:
             self.selected_event = None
 
-    def new_event(self):
+    def create_event(self):
+        """Create a new event of the selected type"""
         if self.cap is None:
             QMessageBox.warning(self, "Warning", "Please load a video first.")
             return
 
-        # Check if there's already an incomplete event
-        for i, event in enumerate(self.events):
-            if event["start"] == -1 or event["end"] == -1:
+        # Get selected event type
+        selected_type = self.event_type_combo.currentText()
+        if selected_type == "Select event type...":
+            QMessageBox.warning(self, "Warning", "Please select an event type.")
+            return
+
+        # Check if this event type already exists
+        for event in self.events:
+            if event['name'] == selected_type:
                 QMessageBox.warning(
                     self,
-                    "Incomplete Event",
-                    f"{event['name']} is incomplete. Please complete it before creating a new event.",
+                    "Event Exists",
+                    f"{selected_type} already exists. Please complete or delete it first."
                 )
-                # Select the incomplete event
-                self.selected_event = i
-                self.events_list.setCurrentRow(i)
+                # Select the existing event
+                for i, e in enumerate(self.events):
+                    if e['name'] == selected_type:
+                        self.selected_event = i
+                        self.events_list.setCurrentRow(i)
                 return
 
         # Save current state for undo
         self.save_event_state()
 
-        # Create new event with automatically assigned number
-        event_number = len(self.events) + 1
-        event = {"name": f"Event {event_number}", "start": -1, "end": -1}
+        # Create new event
+        event = {"name": selected_type, "start": -1, "end": -1}
         self.events.append(event)
         self.selected_event = len(self.events) - 1
         self.has_unsaved_changes = True
+        
+        # Reset dropdown to default
+        self.event_type_combo.setCurrentIndex(0)
+        
         self.update_event_list()
 
     def select_event(self, item):
@@ -753,10 +826,6 @@ class VideoAnnotator(QMainWindow):
 
             self.events.pop(self.selected_event)
 
-            # Renumber all events
-            for i, event in enumerate(self.events):
-                event["name"] = f"Event {i+1}"
-
             # Update selection
             if not self.events:
                 self.selected_event = None
@@ -780,20 +849,92 @@ class VideoAnnotator(QMainWindow):
         if self.selected_event is not None:
             self.events_list.setCurrentRow(self.selected_event)
 
+    def calculate_duration(self, start_frame, end_frame):
+        """Calculate duration in seconds from frame numbers"""
+        if start_frame == -1 or end_frame == -1 or self.fps == 0:
+            return None
+        return round((end_frame - start_frame + 1) / self.fps, 1)
+
     def save_events(self):
         if self.cap is None or self.current_video_index < 0:
+            return
+
+        # Check metadata completeness
+        if not all([self.metadata['participant_id'], self.metadata['condition'], 
+                   self.metadata['series_title']]):
+            QMessageBox.warning(
+                self,
+                "Incomplete Metadata",
+                "Please fill in all metadata fields (Participant ID, Condition, Series Title) before saving."
+            )
             return
 
         video_dir = os.path.dirname(self.video_paths[self.current_video_index])
         csv_path = os.path.join(video_dir, "events.csv")
 
         try:
+            # Collect all monitors that have been annotated
+            annotated_monitors = set()
+            rows_to_write = []
+
+            # Process annotated events
+            for event in self.events:
+                # Extract monitor_id and event_type from event name
+                # Event name format: "Approach to M1" or "Viewing M1"
+                parts = event['name'].split()
+                if len(parts) >= 2:
+                    monitor_id = parts[-1]  # M1, M2, M3, or M4
+                    event_type = "approach" if "Approach" in event['name'] else "viewing"
+                    annotated_monitors.add(monitor_id)
+
+                    # Calculate duration
+                    duration = self.calculate_duration(event['start'], event['end'])
+                    duration_str = str(duration) if duration is not None else "N.A."
+
+                    # Create row
+                    row = [
+                        self.metadata['participant_id'],
+                        self.metadata['file_name'],
+                        self.metadata['condition'],
+                        self.metadata['series_title'],
+                        monitor_id,
+                        event_type,
+                        event['start'] if event['start'] != -1 else "N.A.",
+                        event['end'] if event['end'] != -1 else "N.A.",
+                        duration_str
+                    ]
+                    rows_to_write.append(row)
+
+            # Add N.A. entries for monitors that weren't annotated
+            all_monitors = {'M1', 'M2', 'M3', 'M4'}
+            missing_monitors = all_monitors - annotated_monitors
+
+            for monitor_id in missing_monitors:
+                # Add N.A. row for this monitor
+                na_row = [
+                    self.metadata['participant_id'],
+                    self.metadata['file_name'],
+                    self.metadata['condition'],
+                    self.metadata['series_title'],
+                    monitor_id,
+                    "N.A.",
+                    "N.A.",
+                    "N.A.",
+                    "N.A."
+                ]
+                rows_to_write.append(na_row)
+
+            # Sort rows by monitor_id
+            rows_to_write.sort(key=lambda x: x[4])  # Sort by monitor_id column
+
+            # Write to CSV
             with open(csv_path, "w", newline="") as csvfile:
                 writer = csv.writer(csvfile)
-                writer.writerow(["Event", "Start Frame", "End Frame"])
-
-                for event in self.events:
-                    writer.writerow([event["name"], event["start"], event["end"]])
+                writer.writerow([
+                    "participant_id", "file_name", "condition", "series_title",
+                    "monitor_id", "event_type", "start_time", "end_time", "duration"
+                ])
+                writer.writerows(rows_to_write)
 
             self.has_unsaved_changes = False
             QMessageBox.information(self, "Success", f"Events saved to {csv_path}")
@@ -805,25 +946,50 @@ class VideoAnnotator(QMainWindow):
 
         try:
             with open(csv_path, "r") as csvfile:
-                reader = csv.reader(csvfile)
-                next(reader)  # Skip header
-
-                for i, row in enumerate(reader):
-                    if len(row) >= 3:
-                        event = {
-                            "name": f"Event {i+1}",  # Force consistent naming
-                            "start": (
-                                int(row[1])
-                                if row[1] != "-1" and row[1] != "N/A"
-                                else -1
-                            ),
-                            "end": (
-                                int(row[2])
-                                if row[2] != "-1" and row[2] != "N/A"
-                                else -1
-                            ),
-                        }
-                        self.events.append(event)
+                reader = csv.DictReader(csvfile)
+                
+                # Load metadata from first row if available
+                first_row = None
+                
+                for row in reader:
+                    if first_row is None:
+                        first_row = row
+                        # Load metadata from CSV
+                        self.metadata['participant_id'] = row.get('participant_id', '')
+                        self.metadata['condition'] = row.get('condition', '')
+                        self.metadata['series_title'] = row.get('series_title', '')
+                        # file_name is already auto-filled from directory
+                        
+                        # Update UI with loaded metadata
+                        self.participant_id_input.setText(self.metadata['participant_id'])
+                        self.condition_combo.setCurrentText(self.metadata['condition'])
+                        self.series_title_input.setText(self.metadata['series_title'])
+                    
+                    # Skip N.A. entries
+                    if row.get('event_type', '') == 'N.A.':
+                        continue
+                    
+                    # Reconstruct event name
+                    monitor_id = row.get('monitor_id', '')
+                    event_type = row.get('event_type', '')
+                    
+                    if event_type == 'approach':
+                        event_name = f"Approach to {monitor_id}"
+                    elif event_type == 'viewing':
+                        event_name = f"Viewing {monitor_id}"
+                    else:
+                        continue  # Skip unknown event types
+                    
+                    # Parse start and end times
+                    start_time = row.get('start_time', 'N.A.')
+                    end_time = row.get('end_time', 'N.A.')
+                    
+                    event = {
+                        "name": event_name,
+                        "start": int(start_time) if start_time not in ['-1', 'N.A.'] else -1,
+                        "end": int(end_time) if end_time not in ['-1', 'N.A.'] else -1
+                    }
+                    self.events.append(event)
 
             # Reset unsaved changes flag since we just loaded from disk
             self.has_unsaved_changes = False
