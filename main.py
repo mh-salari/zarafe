@@ -218,10 +218,10 @@ class VideoAnnotator(QMainWindow):
 
         # Predefined event types
         self.event_types = [
-            "Approach to M1", "Viewing M1",
-            "Approach to M2", "Viewing M2",
-            "Approach to M3", "Viewing M3",
-            "Approach to M4", "Viewing M4"
+            "Approach M1", "View M1",
+            "Approach M2", "View M2",
+            "Approach M3", "View M3",
+            "Approach M4", "View M4"
         ]
 
         # Set application icon
@@ -958,23 +958,27 @@ class VideoAnnotator(QMainWindow):
             # Process annotated events
             for event in self.events:
                 # Extract monitor_id and event_type from event name
-                # Event name format: "Approach to M1" or "Viewing M1"
+                # Event name format: "Approach M1" or "View M1"
                 parts = event['name'].split()
                 if len(parts) >= 2:
                     monitor_id = parts[-1]  # M1, M2, M3, or M4
-                    event_type = "approach" if "Approach" in event['name'] else "viewing"
+                    event_type = "approach" if "Approach" in event['name'] else "view"
                     annotated_monitors.add(monitor_id)
 
                     # Calculate duration
                     duration = self.calculate_duration(event['start'], event['end'])
                     duration_str = str(duration) if duration is not None else "N.A."
 
+                    # Get monitor image for this monitor
+                    image_name = self.metadata.get(monitor_id, '')
+                    
                     # Create row
                     row = [
                         self.metadata['participant_id'],
                         self.metadata['file_name'],
                         self.metadata['condition'],
                         self.metadata['series_title'],
+                        image_name,
                         monitor_id,
                         event_type,
                         event['start'] if event['start'] != -1 else "N.A.",
@@ -988,12 +992,16 @@ class VideoAnnotator(QMainWindow):
             missing_monitors = all_monitors - annotated_monitors
 
             for monitor_id in missing_monitors:
+                # Get monitor image for this monitor
+                image_name = self.metadata.get(monitor_id, '')
+                
                 # Add N.A. row for this monitor
                 na_row = [
                     self.metadata['participant_id'],
                     self.metadata['file_name'],
                     self.metadata['condition'],
                     self.metadata['series_title'],
+                    image_name,
                     monitor_id,
                     "N.A.",
                     "N.A.",
@@ -1003,13 +1011,13 @@ class VideoAnnotator(QMainWindow):
                 rows_to_write.append(na_row)
 
             # Sort rows by start
-            rows_to_write.sort(key=lambda x: x[6])  # Sort by start column
+            rows_to_write.sort(key=lambda x: x[7])  # Sort by start column
 
             # Write to CSV
             with open(csv_path, "w", newline="") as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerow([
-                    "participant_id", "file_name", "condition", "series_title",
+                    "participant_id", "file_name", "condition", "series_title", "image_name",
                     "monitor_id", "event_type", "start_frame", "end_frame", "duration"
                 ])
                 writer.writerows(rows_to_write)
@@ -1037,9 +1045,9 @@ class VideoAnnotator(QMainWindow):
                     event_type = row.get('event_type', '')
                     
                     if event_type == 'approach':
-                        event_name = f"Approach to {monitor_id}"
-                    elif event_type == 'viewing':
-                        event_name = f"Viewing {monitor_id}"
+                        event_name = f"Approach {monitor_id}"
+                    elif event_type == 'view':
+                        event_name = f"View {monitor_id}"
                     else:
                         continue  # Skip unknown event types
                     
