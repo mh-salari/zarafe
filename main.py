@@ -1088,6 +1088,10 @@ class VideoAnnotator(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    
+    # Force dark theme by setting the color scheme
+    app.setProperty("apple_interfaceStyle", "dark")
+    
     player = VideoAnnotator()
     player.show()
     sys.exit(app.exec())
