@@ -13,6 +13,7 @@ import os
 import csv
 import cv2
 import pandas as pd
+import platform
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -45,6 +46,78 @@ from PyQt6.QtGui import (
 from PyQt6.QtCore import Qt, QTimer
 
 import re
+
+
+def apply_dark_theme(app):
+    """Apply dark theme based on the current platform"""
+    if platform.system() == "Darwin":  # macOS
+        app.setProperty("apple_interfaceStyle", "dark")
+    elif platform.system() == "Windows":
+        os.environ["QT_QPA_PLATFORMTHEME"] = "qt5ct"
+        app.setStyle("Fusion")
+        app.setStyleSheet("""
+            QWidget {
+                background-color: #2b2b2b;
+                color: #ffffff;
+            }
+            QMainWindow {
+                background-color: #2b2b2b;
+            }
+            QPushButton {
+                background-color: #3c3c3c;
+                border: 1px solid #555555;
+                padding: 5px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background-color: #4c4c4c;
+            }
+            QPushButton:pressed {
+                background-color: #1e1e1e;
+            }
+            QLineEdit, QComboBox {
+                background-color: #3c3c3c;
+                border: 1px solid #555555;
+                padding: 3px;
+                border-radius: 3px;
+            }
+            QListWidget {
+                background-color: #3c3c3c;
+                border: 1px solid #555555;
+                alternate-background-color: #404040;
+            }
+            QSlider::groove:horizontal {
+                background-color: #3c3c3c;
+                height: 6px;
+                border-radius: 3px;
+            }
+            QSlider::handle:horizontal {
+                background-color: #0078d4;
+                border: 1px solid #555555;
+                width: 18px;
+                border-radius: 9px;
+                margin: -6px 0;
+            }
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #555555;
+                border-radius: 3px;
+                margin-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """)
+    else:  # Linux and others
+        app.setStyle("Fusion")
+        app.setStyleSheet("""
+            QWidget {
+                background-color: #2b2b2b;
+                color: #ffffff;
+            }
+        """)
 
 
 def natural_sort_key(s):
@@ -1089,8 +1162,8 @@ class VideoAnnotator(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     
-    # Force dark theme by setting the color scheme
-    app.setProperty("apple_interfaceStyle", "dark")
+    # Apply dark theme
+    apply_dark_theme(app)
     
     player = VideoAnnotator()
     player.show()
