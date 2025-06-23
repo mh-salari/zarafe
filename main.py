@@ -48,6 +48,17 @@ from PyQt6.QtCore import Qt, QTimer
 import re
 
 
+# Sort rows by start, handling "N.A." values
+def sort_key(row):
+    start_value = row[7]  # start_frame column
+    if start_value == "N.A.":
+        return float("inf")  # Put N.A. values at the end
+    try:
+        return int(start_value)
+    except (ValueError, TypeError):
+        return float("inf")  # Treat any non-numeric as N.A.
+
+
 def apply_dark_theme(app):
     """Apply dark theme based on the current platform"""
     if platform.system() == "Darwin":  # macOS
@@ -55,7 +66,8 @@ def apply_dark_theme(app):
     elif platform.system() == "Windows":
         os.environ["QT_QPA_PLATFORMTHEME"] = "qt5ct"
         app.setStyle("Fusion")
-        app.setStyleSheet("""
+        app.setStyleSheet(
+            """
             QWidget {
                 background-color: #2b2b2b;
                 color: #ffffff;
@@ -109,15 +121,18 @@ def apply_dark_theme(app):
                 left: 10px;
                 padding: 0 5px 0 5px;
             }
-        """)
+        """
+        )
     else:  # Linux and others
         app.setStyle("Fusion")
-        app.setStyleSheet("""
+        app.setStyleSheet(
+            """
             QWidget {
                 background-color: #2b2b2b;
                 color: #ffffff;
             }
-        """)
+        """
+        )
 
 
 def natural_sort_key(s):
@@ -210,18 +225,22 @@ class VideoAnnotator(QMainWindow):
 
         # Metadata fields
         self.metadata = {
-            'participant_id': '',
-            'condition': '',
-            'series_title': '',
-            'file_name': ''
+            "participant_id": "",
+            "condition": "",
+            "series_title": "",
+            "file_name": "",
         }
 
         # Predefined event types
         self.event_types = [
-            "Approach M1", "View M1",
-            "Approach M2", "View M2",
-            "Approach M3", "View M3",
-            "Approach M4", "View M4"
+            "Approach M1",
+            "View M1",
+            "Approach M2",
+            "View M2",
+            "Approach M3",
+            "View M3",
+            "Approach M4",
+            "View M4",
         ]
 
         # Set application icon
@@ -316,20 +335,26 @@ class VideoAnnotator(QMainWindow):
         # Participant ID
         metadata_layout.addWidget(QLabel("Participant ID:"), 0, 0)
         self.participant_id_input = QLineEdit()
-        self.participant_id_input.textChanged.connect(lambda text: self.update_metadata('participant_id', text))
+        self.participant_id_input.textChanged.connect(
+            lambda text: self.update_metadata("participant_id", text)
+        )
         metadata_layout.addWidget(self.participant_id_input, 0, 1)
 
         # Condition
         metadata_layout.addWidget(QLabel("Condition:"), 1, 0)
         self.condition_combo = QComboBox()
         self.condition_combo.addItems(["", "Dark", "Timed Dark", "Normal"])
-        self.condition_combo.currentTextChanged.connect(lambda text: self.update_metadata('condition', text))
+        self.condition_combo.currentTextChanged.connect(
+            lambda text: self.update_metadata("condition", text)
+        )
         metadata_layout.addWidget(self.condition_combo, 1, 1)
 
         # Series Title
         metadata_layout.addWidget(QLabel("Series Title:"), 2, 0)
         self.series_title_input = QLineEdit()
-        self.series_title_input.textChanged.connect(lambda text: self.update_metadata('series_title', text))
+        self.series_title_input.textChanged.connect(
+            lambda text: self.update_metadata("series_title", text)
+        )
         metadata_layout.addWidget(self.series_title_input, 2, 1)
 
         metadata_group.setLayout(metadata_layout)
@@ -338,7 +363,7 @@ class VideoAnnotator(QMainWindow):
         # Event creation dropdown
         event_creation_layout = QVBoxLayout()
         event_creation_layout.addWidget(QLabel("Create Event:"))
-        
+
         self.event_type_combo = QComboBox()
         self.event_type_combo.addItem("Select event type...")
         self.event_type_combo.addItems(self.event_types)
@@ -570,7 +595,7 @@ class VideoAnnotator(QMainWindow):
         self.timeline_slider.setValue(0)
 
         # Auto-fill file name from directory
-        self.metadata['file_name'] = os.path.basename(video_dir)
+        self.metadata["file_name"] = os.path.basename(video_dir)
 
         # Load gaze data if available
         gaze_path = os.path.join(video_dir, "gazeData.tsv")
@@ -664,13 +689,17 @@ class VideoAnnotator(QMainWindow):
 
         # Check if current frame is within any event, and add purple border if it is
         frame_in_event = False
+        event_color = None
         for event in self.events:
             if (
                 event["start"] != -1
                 and event["end"] != -1
-                and event["start"] <= self.current_frame <= event["end"]
+                and event["start"] <= self.current_frame + 1 <= event["end"]
             ):
                 frame_in_event = True
+                event_color = (
+                    (123, 100, 25) if "View" in event["name"] else (123, 171, 61)
+                )
                 break
 
         # Add purple border if frame is in an event
@@ -684,7 +713,7 @@ class VideoAnnotator(QMainWindow):
                 border_thickness,
                 border_thickness,
                 cv2.BORDER_CONSTANT,
-                value=(123, 171, 61),
+                value=event_color,
             )
 
         # Convert frame to format suitable for Qt
@@ -803,15 +832,15 @@ class VideoAnnotator(QMainWindow):
 
         # Check if this event type already exists
         for event in self.events:
-            if event['name'] == selected_type:
+            if event["name"] == selected_type:
                 QMessageBox.warning(
                     self,
                     "Event Exists",
-                    f"{selected_type} already exists. Please complete or delete it first."
+                    f"{selected_type} already exists. Please complete or delete it first.",
                 )
                 # Select the existing event
                 for i, e in enumerate(self.events):
-                    if e['name'] == selected_type:
+                    if e["name"] == selected_type:
                         self.selected_event = i
                         self.events_list.setCurrentRow(i)
                 return
@@ -824,10 +853,10 @@ class VideoAnnotator(QMainWindow):
         self.events.append(event)
         self.selected_event = len(self.events) - 1
         self.has_unsaved_changes = True
-        
+
         # Reset dropdown to default
         self.event_type_combo.setCurrentIndex(0)
-        
+
         self.update_event_list()
 
     def select_event(self, item):
@@ -938,12 +967,17 @@ class VideoAnnotator(QMainWindow):
             return
 
         # Check metadata completeness
-        if not all([self.metadata['participant_id'], self.metadata['condition'], 
-                   self.metadata['series_title']]):
+        if not all(
+            [
+                self.metadata["participant_id"],
+                self.metadata["condition"],
+                self.metadata["series_title"],
+            ]
+        ):
             QMessageBox.warning(
                 self,
                 "Incomplete Metadata",
-                "Please fill in all metadata fields (Participant ID, Condition, Series Title) before saving."
+                "Please fill in all metadata fields (Participant ID, Condition, Series Title) before saving.",
             )
             return
 
@@ -959,67 +993,77 @@ class VideoAnnotator(QMainWindow):
             for event in self.events:
                 # Extract monitor_id and event_type from event name
                 # Event name format: "Approach M1" or "View M1"
-                parts = event['name'].split()
+                parts = event["name"].split()
                 if len(parts) >= 2:
                     monitor_id = parts[-1]  # M1, M2, M3, or M4
-                    event_type = "approach" if "Approach" in event['name'] else "view"
+                    event_type = "approach" if "Approach" in event["name"] else "view"
                     annotated_monitors.add(monitor_id)
 
                     # Calculate duration
-                    duration = self.calculate_duration(event['start'], event['end'])
+                    duration = self.calculate_duration(event["start"], event["end"])
                     duration_str = str(duration) if duration is not None else "N.A."
 
                     # Get monitor image for this monitor
-                    image_name = self.metadata.get(monitor_id, '')
-                    
+                    image_name = self.metadata.get(monitor_id, "")
+
                     # Create row
                     row = [
-                        self.metadata['participant_id'],
-                        self.metadata['file_name'],
-                        self.metadata['condition'],
-                        self.metadata['series_title'],
+                        self.metadata["participant_id"],
+                        self.metadata["file_name"],
+                        self.metadata["condition"],
+                        self.metadata["series_title"],
                         image_name,
                         monitor_id,
                         event_type,
-                        event['start'] if event['start'] != -1 else "N.A.",
-                        event['end'] if event['end'] != -1 else "N.A.",
-                        duration_str
+                        event["start"] if event["start"] != -1 else "N.A.",
+                        event["end"] if event["end"] != -1 else "N.A.",
+                        duration_str,
                     ]
                     rows_to_write.append(row)
 
             # Add N.A. entries for monitors that weren't annotated
-            all_monitors = {'M1', 'M2', 'M3', 'M4'}
+            all_monitors = {"M1", "M2", "M3", "M4"}
             missing_monitors = all_monitors - annotated_monitors
 
             for monitor_id in missing_monitors:
                 # Get monitor image for this monitor
-                image_name = self.metadata.get(monitor_id, '')
-                
+                image_name = self.metadata.get(monitor_id, "")
+
                 # Add N.A. row for this monitor
                 na_row = [
-                    self.metadata['participant_id'],
-                    self.metadata['file_name'],
-                    self.metadata['condition'],
-                    self.metadata['series_title'],
+                    self.metadata["participant_id"],
+                    self.metadata["file_name"],
+                    self.metadata["condition"],
+                    self.metadata["series_title"],
                     image_name,
                     monitor_id,
                     "N.A.",
                     "N.A.",
                     "N.A.",
-                    "N.A."
+                    "N.A.",
                 ]
                 rows_to_write.append(na_row)
 
             # Sort rows by start
-            rows_to_write.sort(key=lambda x: x[7])  # Sort by start column
+            rows_to_write.sort(key=sort_key)
 
             # Write to CSV
             with open(csv_path, "w", newline="") as csvfile:
                 writer = csv.writer(csvfile)
-                writer.writerow([
-                    "participant_id", "file_name", "condition", "series_title", "image_name",
-                    "monitor_id", "event_type", "start_frame", "end_frame", "duration"
-                ])
+                writer.writerow(
+                    [
+                        "participant_id",
+                        "file_name",
+                        "condition",
+                        "series_title",
+                        "image_name",
+                        "monitor_id",
+                        "event_type",
+                        "start_frame",
+                        "end_frame",
+                        "duration",
+                    ]
+                )
                 writer.writerows(rows_to_write)
 
             self.has_unsaved_changes = False
@@ -1034,31 +1078,37 @@ class VideoAnnotator(QMainWindow):
             with open(csv_path, "r") as csvfile:
                 reader = csv.DictReader(csvfile)
 
-                for row in reader:     
+                for row in reader:
 
                     # Skip N.A. entries
-                    if row.get('event_type', '') == 'N.A.':
+                    if row.get("event_type", "") == "N.A.":
                         continue
-                    
+
                     # Reconstruct event name
-                    monitor_id = row.get('monitor_id', '')
-                    event_type = row.get('event_type', '')
-                    
-                    if event_type == 'approach':
+                    monitor_id = row.get("monitor_id", "")
+                    event_type = row.get("event_type", "")
+
+                    if event_type == "approach":
                         event_name = f"Approach {monitor_id}"
-                    elif event_type == 'view':
+                    elif event_type == "view":
                         event_name = f"View {monitor_id}"
                     else:
                         continue  # Skip unknown event types
-                    
+
                     # Parse start and end times
-                    start_frame = row.get('start_frame', 'N.A.')
-                    end_frame = row.get('end_frame', 'N.A.')
-                    
+                    start_frame = row.get("start_frame", "N.A.")
+                    end_frame = row.get("end_frame", "N.A.")
+
                     event = {
                         "name": event_name,
-                        "start": int(start_frame) if start_frame not in ['-1', 'N.A.'] else -1,
-                        "end": int(end_frame) if end_frame not in ['-1', 'N.A.'] else -1
+                        "start": (
+                            int(start_frame)
+                            if start_frame not in ["-1", "N.A."]
+                            else -1
+                        ),
+                        "end": (
+                            int(end_frame) if end_frame not in ["-1", "N.A."] else -1
+                        ),
                     }
                     self.events.append(event)
 
@@ -1079,35 +1129,35 @@ class VideoAnnotator(QMainWindow):
         """Update metadata UI fields with current metadata values"""
 
         # Update UI with current metadata
-        self.participant_id_input.setText(self.metadata['participant_id'])
-        self.condition_combo.setCurrentText(self.metadata['condition'])
-        self.series_title_input.setText(self.metadata['series_title'])
+        self.participant_id_input.setText(self.metadata["participant_id"])
+        self.condition_combo.setCurrentText(self.metadata["condition"])
+        self.series_title_input.setText(self.metadata["series_title"])
 
     def load_metadata_csv(self, metadata_path):
         """Load metadata from CSV file and prefill UI fields"""
         try:
             with open(metadata_path, "r") as csvfile:
                 reader = csv.DictReader(csvfile)
-                
+
                 # Read the first (and likely only) row
                 for row in reader:
                     # Load metadata fields
-                    self.metadata['participant_id'] = row.get('participant_id', '')
-                    self.metadata['condition'] = row.get('condition', '')
-                    self.metadata['series_title'] = row.get('series_title', '')
+                    self.metadata["participant_id"] = row.get("participant_id", "")
+                    self.metadata["condition"] = row.get("condition", "")
+                    self.metadata["series_title"] = row.get("series_title", "")
                     # file_name is already auto-filled from directory
 
-                    self.metadata['M1'] = row.get('monitor_1_image', '')
-                    self.metadata['M2'] = row.get('monitor_2_image', '')
-                    self.metadata['M3'] = row.get('monitor_3_image', '')
-                    self.metadata['M4'] = row.get('monitor_4_image', '')
-                    
+                    self.metadata["M1"] = row.get("monitor_1_image", "")
+                    self.metadata["M2"] = row.get("monitor_2_image", "")
+                    self.metadata["M3"] = row.get("monitor_3_image", "")
+                    self.metadata["M4"] = row.get("monitor_4_image", "")
+
                     # Only process the first row
                     break
-                    
+
             # Update UI after loading metadata
             self.update_metadata_ui()
-                    
+
         except Exception as e:
             print(f"Error loading metadata CSV: {e}")
             # Don't show error dialog since this is optional functionality
@@ -1169,10 +1219,10 @@ class VideoAnnotator(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    
+
     # Apply dark theme
     apply_dark_theme(app)
-    
+
     player = VideoAnnotator()
     player.show()
     sys.exit(app.exec())
