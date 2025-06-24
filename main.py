@@ -43,6 +43,10 @@ from PyQt6.QtGui import (
     QKeySequence,
     QIcon,
     QCursor,
+    QPainter,
+    QPen,
+    QBrush,
+    QColor,
 )
 from PyQt6.QtCore import Qt, QTimer
 
@@ -756,14 +760,6 @@ class VideoAnnotator(QMainWindow):
         # Update last frame read
         self.last_frame_read = self.current_frame
 
-        if self.current_frame in self.frame_to_gaze:
-            for x, y in self.frame_to_gaze[self.current_frame]:
-                h, w = frame.shape[:2]
-                if 0 <= x < w and 0 <= y < h:
-                    cv2.circle(
-                        frame, (int(x), int(y)), 5, (0, 255, 0), -1
-                    )
-
         # Check if current frame is within any event, and add border if it is
         frame_in_event = False
         event_color = None
@@ -818,13 +814,31 @@ class VideoAnnotator(QMainWindow):
         h, w, ch = frame.shape
         img = QImage(frame.data, w, h, w * ch, QImage.Format.Format_RGB888)
 
-        self.video_label.setPixmap(
-            QPixmap.fromImage(img).scaled(
-                self.video_label.width(),
-                self.video_label.height(),
-                Qt.AspectRatioMode.KeepAspectRatio,
-            )
+        scaled_pixmap = QPixmap.fromImage(img).scaled(
+            self.video_label.width(),
+            self.video_label.height(),
+            Qt.AspectRatioMode.KeepAspectRatio,
         )
+
+        if self.current_frame in self.frame_to_gaze:
+            painter = QPainter(scaled_pixmap)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            
+            scale_x = scaled_pixmap.width() / w
+            scale_y = scaled_pixmap.height() / h
+            
+            for x, y in self.frame_to_gaze[self.current_frame]:
+                if 0 <= x < w and 0 <= y < h:
+                    scaled_x = int(x * scale_x)
+                    scaled_y = int(y * scale_y)
+                    
+                    painter.setPen(QPen(QColor(0, 255, 0, 150), 1))
+                    painter.setBrush(QBrush(QColor(0, 255, 0, 150)))
+                    painter.drawEllipse(scaled_x - 2, scaled_y - 2, 4, 4)
+            
+            painter.end()
+
+        self.video_label.setPixmap(scaled_pixmap)
 
         self.frame_info.setText(
             f"Frame: {self.current_frame + 1} / {self.total_frames}"
