@@ -999,6 +999,15 @@ class VideoAnnotator(QMainWindow):
                     event_type = "approach" if "Approach" in event["name"] else "view"
                     annotated_monitors.add(monitor_id)
 
+                    # Validate that event has both start and end if not N.A.
+                    if event["start"] == -1 or event["end"] == -1:
+                        QMessageBox.warning(
+                            self,
+                            "Incomplete Event",
+                            f"Event '{event['name']}' is missing start or end time. Please complete the annotation before saving.",
+                        )
+                        return
+
                     # Calculate duration
                     duration = self.calculate_duration(event["start"], event["end"])
                     duration_str = str(duration) if duration is not None else "N.A."
