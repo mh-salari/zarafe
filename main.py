@@ -395,6 +395,14 @@ class VideoAnnotator(QMainWindow):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         center_layout.addWidget(self.video_label, 1)
+        
+        # Annotation info overlay positioned on top of video image
+        self.annotation_info_label = QLabel("")
+        self.annotation_info_label.setStyleSheet("color: white; font-size: 14px; font-weight: bold;")
+        self.annotation_info_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.annotation_info_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.annotation_info_label.setParent(self.video_label)
+        self.annotation_info_label.hide()  # Initially hidden
 
         # Video controls at bottom
         control_layout = QVBoxLayout()
@@ -819,9 +827,10 @@ class VideoAnnotator(QMainWindow):
                         frame, (int(x), int(y)), 5, (0, 255, 0), -1
                     )  # Green dot, radius 5, filled
 
-        # Check if current frame is within any event, and add purple border if it is
+        # Check if current frame is within any event, and add border if it is
         frame_in_event = False
         event_color = None
+        current_event = None
         for event in self.events:
             if (
                 event["start"] != -1
@@ -829,12 +838,13 @@ class VideoAnnotator(QMainWindow):
                 and event["start"] <= self.current_frame + 1 <= event["end"]
             ):
                 frame_in_event = True
+                current_event = event
                 event_color = (
                     (123, 100, 25) if "View" in event["name"] else (123, 171, 61)
                 )
                 break
 
-        # Add purple border if frame is in an event
+        # Add border if frame is in an event and update annotation label
         if frame_in_event:
             h, w = frame.shape[:2]
             border_thickness = 1
@@ -847,6 +857,32 @@ class VideoAnnotator(QMainWindow):
                 cv2.BORDER_CONSTANT,
                 value=event_color,
             )
+            
+            # Update annotation info label
+            if current_event:
+                # Calculate duration
+                duration = self.calculate_duration(current_event["start"], current_event["end"])
+                duration_str = f"{duration}s" if duration is not None else "N/A"
+                
+                # Create annotation text
+                event_type = "Approach" if "Approach" in current_event["name"] else "View"
+                monitor = current_event["name"].split()[-1]  # Extract M1, M2, etc.
+                annotation_text = f"{event_type} {monitor} ({duration_str})"
+                
+                # Convert BGR color to hex for CSS
+                color_hex = f"#{event_color[2]:02x}{event_color[1]:02x}{event_color[0]:02x}"
+                
+                # Update overlay label with colored text
+                self.annotation_info_label.setText(annotation_text)
+                self.annotation_info_label.setStyleSheet(f"color: {color_hex}; font-size: 14px; font-weight: bold;")
+                self.annotation_info_label.adjustSize()  # Resize to fit content
+                
+                # Position the label at top-left of the actual video image
+                self.position_annotation_overlay()
+                self.annotation_info_label.show()
+        else:
+            # Hide annotation info when not in an event
+            self.annotation_info_label.hide()
 
         # Convert frame to format suitable for Qt
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -874,6 +910,38 @@ class VideoAnnotator(QMainWindow):
 
         # Update pupil plot current frame indicator
         self.pupil_plot.update_current_frame(self.current_frame)
+
+    def position_annotation_overlay(self):
+        """Position the annotation overlay at the top-left of the actual video image"""
+        if not self.video_label.pixmap():
+            return
+            
+        # Get the video label size and the pixmap size
+        label_size = self.video_label.size()
+        pixmap_size = self.video_label.pixmap().size()
+        
+        # Calculate the actual position of the video image within the label
+        # (accounting for aspect ratio scaling and centering)
+        label_width = label_size.width()
+        label_height = label_size.height()
+        pixmap_width = pixmap_size.width()
+        pixmap_height = pixmap_size.height()
+        
+        # Calculate scaling factor (keeping aspect ratio)
+        scale_x = label_width / pixmap_width
+        scale_y = label_height / pixmap_height
+        scale = min(scale_x, scale_y)
+        
+        # Calculate actual displayed image size
+        display_width = int(pixmap_width * scale)
+        display_height = int(pixmap_height * scale)
+        
+        # Calculate offset to center the image in the label
+        offset_x = (label_width - display_width) // 2
+        offset_y = (label_height - display_height) // 2
+        
+        # Position the annotation at top-left of the actual video image with small margin
+        self.annotation_info_label.move(offset_x + 10, offset_y + 10)
 
     def slider_moved(self):
         if self.cap is None or not self.cap.isOpened():
