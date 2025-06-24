@@ -67,7 +67,6 @@ class PupilSizePlot(FigureCanvas):
         
         self.pupil_data = None
         self.frame_data = None
-        self.current_frame_line = None
         self.total_frames = 0
         
         # Initialize with clean empty state
@@ -129,19 +128,6 @@ class PupilSizePlot(FigureCanvas):
         
         # Remove any padding/margins
         self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
-        self.draw()
-    
-    def update_current_frame(self, frame_number):
-        """Update the current frame indicator on the plot"""
-        if self.pupil_data is None:
-            return
-            
-        # Remove previous line if exists
-        if self.current_frame_line is not None:
-            self.current_frame_line.remove()
-        
-        # Add new current frame line
-        self.current_frame_line = self.ax.axvline(x=frame_number, color='red', linewidth=2, alpha=0.8)
         self.draw()
     
     def clear_plot(self):
@@ -908,8 +894,6 @@ class VideoAnnotator(QMainWindow):
         self.timeline_slider.setValue(self.current_frame)
         self.timeline_slider.blockSignals(False)
 
-        # Update pupil plot current frame indicator
-        self.pupil_plot.update_current_frame(self.current_frame)
 
     def position_annotation_overlay(self):
         """Position the annotation overlay at the top-left of the actual video image"""
