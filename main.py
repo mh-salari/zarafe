@@ -295,6 +295,7 @@ class VideoAnnotator(QMainWindow):
         self.total_frames = 0
         self.playing = False
         self.fps = 30
+        self.last_frame_read = -1  # Track last frame read for sequential optimization
 
         # Gaze data
         self.gaze_data = None
@@ -710,6 +711,7 @@ class VideoAnnotator(QMainWindow):
         self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)
         self.current_frame = 0
+        self.last_frame_read = -1  # Reset frame tracking
         self.playing = False
         self.play_btn.setText("Play")
 
@@ -781,27 +783,35 @@ class VideoAnnotator(QMainWindow):
                 # Jump to end frame if defined
                 if event["end"] != -1:
                     self.current_frame = event["end"]
+                    self.last_frame_read = -1  # Force seek
                     self.display_frame()
             else:
                 # Jump to start frame if defined, otherwise end frame
                 if event["start"] != -1:
                     self.current_frame = event["start"]
+                    self.last_frame_read = -1  # Force seek
                     self.display_frame()
                 elif event["end"] != -1:
                     self.current_frame = event["end"]
+                    self.last_frame_read = -1  # Force seek
                     self.display_frame()
 
     def display_frame(self):
         if self.cap is None or not self.cap.isOpened():
             return
 
-        # Set frame position
-        self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame)
-
+        # Optimize frame reading: only seek if necessary
+        if self.current_frame != self.last_frame_read + 1:
+            # Need to seek to the frame
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame)
+        
         # Read frame
         ret, frame = self.cap.read()
         if not ret:
             return
+        
+        # Update last frame read
+        self.last_frame_read = self.current_frame
 
         # Add gaze points if available for this frame
         if self.current_frame in self.frame_to_gaze:
@@ -932,6 +942,8 @@ class VideoAnnotator(QMainWindow):
             return
 
         self.current_frame = self.timeline_slider.value()
+        # Force seek since user jumped to specific frame
+        self.last_frame_read = -1
         self.display_frame()
 
     def next_frame(self):
@@ -1363,24 +1375,22 @@ class VideoAnnotator(QMainWindow):
         if self.cap is None or not self.cap.isOpened():
             return
         
-        for _ in range(10):
-            if self.current_frame < self.total_frames - 1:
-                self.current_frame += 1
-            else:
-                break
-        self.display_frame()
+        target_frame = min(self.current_frame + 10, self.total_frames - 1)
+        if target_frame != self.current_frame:
+            self.current_frame = target_frame
+            self.last_frame_read = -1  # Force seek
+            self.display_frame()
 
     def jump_backward_10(self):
         """Jump 10 frames backward"""
         if self.cap is None or not self.cap.isOpened():
             return
         
-        for _ in range(10):
-            if self.current_frame > 0:
-                self.current_frame -= 1
-            else:
-                break
-        self.display_frame()
+        target_frame = max(self.current_frame - 10, 0)
+        if target_frame != self.current_frame:
+            self.current_frame = target_frame
+            self.last_frame_read = -1  # Force seek
+            self.display_frame()
 
     def keyPressEvent(self, event: QKeyEvent):
         # Video playback shortcuts are now handled by QShortcut objects
