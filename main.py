@@ -237,12 +237,10 @@ class AboutDialog(QDialog):
 
         layout = QVBoxLayout()
 
-        # Title
         title_label = QLabel("<h2>Video Annotation Tool - Muisti Version</h2>")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
 
-        # Description text
         desc_text = QLabel(
             "<p>Developed by Mohammadhossein Salari with the assistance of Claude 3.7 Sonnet.</p>"
             "<p>Modified for monitor approach/viewing event annotation.</p>"
@@ -258,7 +256,6 @@ class AboutDialog(QDialog):
         desc_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(desc_text)
 
-        # Add image
         image_label = QLabel()
         image_path = os.path.join(
             os.path.dirname(__file__), "resources", "Funded_by_EU_Eyes4ICU.png"
@@ -342,19 +339,15 @@ class VideoAnnotator(QMainWindow):
     def setup_ui(self):
         self.setWindowTitle("Zarafe - Muisti Version")
 
-        # Create main splitter
         main_splitter = QSplitter(Qt.Orientation.Horizontal)
 
-        # ===== LEFT PANEL =====
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
 
-        # Open directory button
         self.open_dir_btn = QPushButton("Open Directory")
         self.open_dir_btn.clicked.connect(self.open_directory)
         left_layout.addWidget(self.open_dir_btn)
 
-        # Video navigation buttons
         nav_layout = QHBoxLayout()
         self.prev_video_btn = QPushButton("Previous Video")
         self.prev_video_btn.clicked.connect(self.prev_video)
@@ -364,17 +357,14 @@ class VideoAnnotator(QMainWindow):
         nav_layout.addWidget(self.next_video_btn)
         left_layout.addLayout(nav_layout)
 
-        # Video list
         left_layout.addWidget(QLabel("Videos:"))
         self.video_list = QListWidget()
         self.video_list.itemClicked.connect(self.select_video)
         left_layout.addWidget(self.video_list)
 
-        # ===== CENTER PANEL =====
         center_panel = QWidget()
         center_layout = QVBoxLayout(center_panel)
 
-        # Video display
         self.video_label = QLabel("No video selected")
         self.video_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.video_label.setMinimumSize(640, 480)
@@ -383,18 +373,15 @@ class VideoAnnotator(QMainWindow):
         )
         center_layout.addWidget(self.video_label, 1)
         
-        # Annotation info overlay positioned on top of video image
         self.annotation_info_label = QLabel("")
         self.annotation_info_label.setStyleSheet("color: white; font-size: 14px; font-weight: bold;")
         self.annotation_info_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.annotation_info_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.annotation_info_label.setParent(self.video_label)
-        self.annotation_info_label.hide()  # Initially hidden
+        self.annotation_info_label.hide()
 
-        # Video controls at bottom
         control_layout = QVBoxLayout()
 
-        # Pupil size label and plot above timeline slider
         pupil_label = QLabel("Pupil Diameter (mm)")
         pupil_label.setStyleSheet("color: white; font-size: 12px; margin-bottom: 2px;")
         pupil_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -404,14 +391,12 @@ class VideoAnnotator(QMainWindow):
         self.pupil_plot.setMaximumHeight(120)
         control_layout.addWidget(self.pupil_plot)
 
-        # Timeline slider
         self.timeline_slider = QSlider(Qt.Orientation.Horizontal)
         self.timeline_slider.setMinimum(0)
         self.timeline_slider.setMaximum(100)
         self.timeline_slider.valueChanged.connect(self.slider_moved)
         control_layout.addWidget(self.timeline_slider)
 
-        # Playback controls
         playback_layout = QHBoxLayout()
         self.play_btn = QPushButton("Play")
         self.play_btn.clicked.connect(self.toggle_play)
@@ -430,15 +415,12 @@ class VideoAnnotator(QMainWindow):
 
         center_layout.addLayout(control_layout)
 
-        # ===== RIGHT PANEL =====
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
 
-        # Metadata fields group
         metadata_group = QGroupBox("Session Metadata")
         metadata_layout = QGridLayout()
 
-        # Participant ID
         metadata_layout.addWidget(QLabel("Participant ID:"), 0, 0)
         self.participant_id_input = QLineEdit()
         self.participant_id_input.textChanged.connect(
@@ -446,7 +428,6 @@ class VideoAnnotator(QMainWindow):
         )
         metadata_layout.addWidget(self.participant_id_input, 0, 1)
 
-        # Condition
         metadata_layout.addWidget(QLabel("Condition:"), 1, 0)
         self.condition_combo = QComboBox()
         self.condition_combo.addItems(["", "Dark", "Timed Dark", "Normal"])
@@ -455,7 +436,6 @@ class VideoAnnotator(QMainWindow):
         )
         metadata_layout.addWidget(self.condition_combo, 1, 1)
 
-        # Series Title
         metadata_layout.addWidget(QLabel("Series Title:"), 2, 0)
         self.series_title_input = QLineEdit()
         self.series_title_input.textChanged.connect(
@@ -466,7 +446,6 @@ class VideoAnnotator(QMainWindow):
         metadata_group.setLayout(metadata_layout)
         right_layout.addWidget(metadata_group)
 
-        # Event creation dropdown
         event_creation_layout = QVBoxLayout()
         event_creation_layout.addWidget(QLabel("Create Event:"))
 
@@ -481,7 +460,6 @@ class VideoAnnotator(QMainWindow):
 
         right_layout.addLayout(event_creation_layout)
 
-        # Events list
         right_layout.addWidget(QLabel("Events:"))
         self.events_list = QListWidget()
         self.events_list.setMaximumHeight(200)  # Limit height for 5-6 items
@@ -489,10 +467,8 @@ class VideoAnnotator(QMainWindow):
         self.events_list.itemDoubleClicked.connect(self.jump_to_event)
         right_layout.addWidget(self.events_list)
 
-        # Event controls
         event_controls = QVBoxLayout()
 
-        # Button row 1
         button_row1 = QHBoxLayout()
         self.mark_start_btn = QPushButton("Mark Start")
         self.mark_start_btn.clicked.connect(self.mark_start)
@@ -501,7 +477,6 @@ class VideoAnnotator(QMainWindow):
         button_row1.addWidget(self.mark_start_btn)
         button_row1.addWidget(self.mark_end_btn)
 
-        # Button row 2
         button_row2 = QHBoxLayout()
         self.delete_event_btn = QPushButton("Delete Event")
         self.delete_event_btn.clicked.connect(self.delete_event)
@@ -510,7 +485,6 @@ class VideoAnnotator(QMainWindow):
         button_row2.addWidget(self.delete_event_btn)
         button_row2.addWidget(self.save_events_btn)
 
-        # Add all button rows
         event_controls.addLayout(button_row1)
         event_controls.addLayout(button_row2)
 
@@ -579,26 +553,21 @@ class VideoAnnotator(QMainWindow):
         about_dialog.exec()
 
     def setup_shortcuts(self):
-        # Ctrl+Z for undo
         self.undo_shortcut = QShortcut(QKeySequence("Ctrl+Z"), self)
         self.undo_shortcut.activated.connect(self.undo_action)
 
-        # Ctrl+S for save
         self.save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
         self.save_shortcut.activated.connect(self.save_events)
         
-        # Space for play/pause
         self.play_pause_shortcut = QShortcut(QKeySequence("Space"), self)
         self.play_pause_shortcut.activated.connect(self.toggle_play)
         
-        # Arrow keys for frame navigation
         self.next_frame_shortcut = QShortcut(QKeySequence("Right"), self)
         self.next_frame_shortcut.activated.connect(self.next_frame)
         
         self.prev_frame_shortcut = QShortcut(QKeySequence("Left"), self)
         self.prev_frame_shortcut.activated.connect(self.prev_frame)
         
-        # Shift+Arrow keys for jumping 10 frames
         self.jump_forward_shortcut = QShortcut(QKeySequence("Shift+Right"), self)
         self.jump_forward_shortcut.activated.connect(self.jump_forward_10)
         
@@ -615,19 +584,15 @@ class VideoAnnotator(QMainWindow):
 
         video_entries = []
 
-        # Find all subdirectories with worldCamera.mp4
         for entry in os.scandir(dir_path):
             if entry.is_dir():
                 video_path = os.path.join(entry.path, "worldCamera.mp4")
                 if os.path.exists(video_path):
-                    # Store both the video path and display name in a list
                     display_name = f"{os.path.basename(entry.path)}"
                     video_entries.append((video_path, display_name))
 
-        # Sort video entries by the directory and subdirectory names
         video_entries.sort(key=natural_sort_key)
 
-        # Add sorted items to video_paths and video_list
         for video_path, display_name in video_entries:
             self.video_paths.append(video_path)
             self.video_list.addItem(display_name)
@@ -635,7 +600,6 @@ class VideoAnnotator(QMainWindow):
     def select_video(self, item):
         index = self.video_list.row(item)
         if 0 <= index < len(self.video_paths):
-            # load_video will check for unsaved changes
             self.load_video(index)
 
     def next_video(self):
@@ -681,11 +645,9 @@ class VideoAnnotator(QMainWindow):
             return False
 
     def load_video(self, index):
-        # Check for unsaved changes before loading a new video
         if self.cap is not None and not self.check_unsaved_changes():
             return
 
-        # Clean up existing video
         if self.cap is not None:
             self.cap.release()
             self.timer.stop()
@@ -694,9 +656,9 @@ class VideoAnnotator(QMainWindow):
         self.events.clear()
         self.events_list.clear()
         self.selected_event = None
-        self.event_history.clear()  # Clear undo history
-        self.frame_to_gaze = {}  # Clear gaze data
-        self.has_unsaved_changes = False  # Reset unsaved changes flag
+        self.event_history.clear()
+        self.frame_to_gaze = {}
+        self.has_unsaved_changes = False
 
         # Open the new video
         video_path = self.video_paths[index]
@@ -707,22 +669,18 @@ class VideoAnnotator(QMainWindow):
             self.video_label.setText(f"Error opening video: {video_path}")
             return
 
-        # Get video properties
         self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)
         self.current_frame = 0
-        self.last_frame_read = -1  # Reset frame tracking
+        self.last_frame_read = -1
         self.playing = False
         self.play_btn.setText("Play")
 
-        # Update timeline slider
         self.timeline_slider.setMaximum(self.total_frames - 1)
         self.timeline_slider.setValue(0)
 
-        # Auto-fill file name from directory
         self.metadata["file_name"] = os.path.basename(video_dir)
 
-        # Load gaze data if available
         gaze_path = os.path.join(video_dir, "gazeData.tsv")
         if os.path.exists(gaze_path):
             try:
@@ -730,42 +688,33 @@ class VideoAnnotator(QMainWindow):
             except Exception as e:
                 print(f"Error loading gaze data: {e}")
 
-        # Update pupil plot with gaze data
         self.pupil_plot.update_data(self.gaze_data, self.total_frames)
 
-        # Update UI
         self.display_frame()
 
-        # Load metadata if available
         metadata_path = os.path.join(video_dir, "metadata.csv")
         if os.path.exists(metadata_path):
             self.load_metadata_csv(metadata_path)
 
-        # Look for existing annotations
         csv_path = os.path.join(video_dir, "events.csv")
         if os.path.exists(csv_path):
             self.load_events(csv_path)
-            # Save initial state for undo
             self.save_event_state()
 
     def load_gaze_data(self, gaze_path):
         """Load gaze data from TSV file and organize by frame index"""
-        # Load the gaze data
         self.gaze_data = pd.read_csv(gaze_path, sep="\t")
 
-        # Create a dictionary mapping frame indices to gaze points
         self.frame_to_gaze = {}
 
         for _, row in self.gaze_data.iterrows():
             frame_idx = int(row["frame_idx"])
 
-            # Skip if gaze coordinates are missing
             if pd.isna(row["gaze_pos_vid_x"]) or pd.isna(row["gaze_pos_vid_y"]):
                 continue
             x = float(row["gaze_pos_vid_x"])
             y = float(row["gaze_pos_vid_y"])
 
-            # Add gaze point to the frame
             if frame_idx not in self.frame_to_gaze:
                 self.frame_to_gaze[frame_idx] = []
 
@@ -777,35 +726,29 @@ class VideoAnnotator(QMainWindow):
         if 0 <= index < len(self.events):
             event = self.events[index]
 
-            # Check if Shift key is pressed for end frame
             modifiers = QApplication.keyboardModifiers()
             if modifiers == Qt.KeyboardModifier.ShiftModifier:
-                # Jump to end frame if defined
                 if event["end"] != -1:
                     self.current_frame = event["end"]
-                    self.last_frame_read = -1  # Force seek
+                    self.last_frame_read = -1
                     self.display_frame()
             else:
-                # Jump to start frame if defined, otherwise end frame
                 if event["start"] != -1:
                     self.current_frame = event["start"]
-                    self.last_frame_read = -1  # Force seek
+                    self.last_frame_read = -1
                     self.display_frame()
                 elif event["end"] != -1:
                     self.current_frame = event["end"]
-                    self.last_frame_read = -1  # Force seek
+                    self.last_frame_read = -1
                     self.display_frame()
 
     def display_frame(self):
         if self.cap is None or not self.cap.isOpened():
             return
 
-        # Optimize frame reading: only seek if necessary
         if self.current_frame != self.last_frame_read + 1:
-            # Need to seek to the frame
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame)
         
-        # Read frame
         ret, frame = self.cap.read()
         if not ret:
             return
@@ -813,15 +756,13 @@ class VideoAnnotator(QMainWindow):
         # Update last frame read
         self.last_frame_read = self.current_frame
 
-        # Add gaze points if available for this frame
         if self.current_frame in self.frame_to_gaze:
             for x, y in self.frame_to_gaze[self.current_frame]:
                 h, w = frame.shape[:2]
-                # Draw green dot for gaze point (ensure coordinates are within image bounds)
                 if 0 <= x < w and 0 <= y < h:
                     cv2.circle(
                         frame, (int(x), int(y)), 5, (0, 255, 0), -1
-                    )  # Green dot, radius 5, filled
+                    )
 
         # Check if current frame is within any event, and add border if it is
         frame_in_event = False
@@ -840,7 +781,6 @@ class VideoAnnotator(QMainWindow):
                 )
                 break
 
-        # Add border if frame is in an event and update annotation label
         if frame_in_event:
             h, w = frame.shape[:2]
             border_thickness = 1
@@ -854,21 +794,16 @@ class VideoAnnotator(QMainWindow):
                 value=event_color,
             )
             
-            # Update annotation info label
             if current_event:
-                # Calculate duration
                 duration = self.calculate_duration(current_event["start"], current_event["end"])
                 duration_str = f"{duration}s" if duration is not None else "N/A"
                 
-                # Create annotation text
                 event_type = "Approach" if "Approach" in current_event["name"] else "View"
-                monitor = current_event["name"].split()[-1]  # Extract M1, M2, etc.
+                monitor = current_event["name"].split()[-1]
                 annotation_text = f"{event_type} {monitor} ({duration_str})"
                 
-                # Convert BGR color to hex for CSS
                 color_hex = f"#{event_color[2]:02x}{event_color[1]:02x}{event_color[0]:02x}"
                 
-                # Update overlay label with colored text
                 self.annotation_info_label.setText(annotation_text)
                 self.annotation_info_label.setStyleSheet(f"color: {color_hex}; font-size: 14px; font-weight: bold;")
                 self.annotation_info_label.adjustSize()  # Resize to fit content
@@ -877,15 +812,12 @@ class VideoAnnotator(QMainWindow):
                 self.position_annotation_overlay()
                 self.annotation_info_label.show()
         else:
-            # Hide annotation info when not in an event
             self.annotation_info_label.hide()
 
-        # Convert frame to format suitable for Qt
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         h, w, ch = frame.shape
         img = QImage(frame.data, w, h, w * ch, QImage.Format.Format_RGB888)
 
-        # Display frame
         self.video_label.setPixmap(
             QPixmap.fromImage(img).scaled(
                 self.video_label.width(),
@@ -894,12 +826,10 @@ class VideoAnnotator(QMainWindow):
             )
         )
 
-        # Update frame info and slider
         self.frame_info.setText(
             f"Frame: {self.current_frame + 1} / {self.total_frames}"
         )
 
-        # Update slider without triggering valueChanged
         self.timeline_slider.blockSignals(True)
         self.timeline_slider.setValue(self.current_frame)
         self.timeline_slider.blockSignals(False)
@@ -942,7 +872,6 @@ class VideoAnnotator(QMainWindow):
             return
 
         self.current_frame = self.timeline_slider.value()
-        # Force seek since user jumped to specific frame
         self.last_frame_read = -1
         self.display_frame()
 
@@ -954,7 +883,6 @@ class VideoAnnotator(QMainWindow):
             self.current_frame += 1
             self.display_frame()
         else:
-            # End of video
             if self.playing:
                 self.toggle_play()
 
@@ -982,13 +910,11 @@ class VideoAnnotator(QMainWindow):
 
     def save_event_state(self):
         """Save current state of events for undo functionality"""
-        # Create a deep copy of the events list
         state_copy = []
         for event in self.events:
             state_copy.append(event.copy())
         self.event_history.append(state_copy)
 
-        # Limit history size to prevent memory issues
         if len(self.event_history) > 20:
             self.event_history.pop(0)
 
@@ -997,20 +923,15 @@ class VideoAnnotator(QMainWindow):
         if not self.event_history:
             return
 
-        # Save event selected state
         prev_selected = self.selected_event
 
-        # Restore previous state
         self.events = self.event_history.pop()
 
-        # Mark as having unsaved changes
         if self.events:
             self.has_unsaved_changes = True
 
-        # Update UI
         self.update_event_list()
 
-        # Restore selection if possible
         if prev_selected is not None and prev_selected < len(self.events):
             self.selected_event = prev_selected
             self.events_list.setCurrentRow(prev_selected)
@@ -1023,13 +944,11 @@ class VideoAnnotator(QMainWindow):
             QMessageBox.warning(self, "Warning", "Please load a video first.")
             return
 
-        # Get selected event type
         selected_type = self.event_type_combo.currentText()
         if selected_type == "Select event type...":
             QMessageBox.warning(self, "Warning", "Please select an event type.")
             return
 
-        # Check if this event type already exists
         for event in self.events:
             if event["name"] == selected_type:
                 QMessageBox.warning(
@@ -1037,23 +956,19 @@ class VideoAnnotator(QMainWindow):
                     "Event Exists",
                     f"{selected_type} already exists. Please complete or delete it first.",
                 )
-                # Select the existing event
                 for i, e in enumerate(self.events):
                     if e["name"] == selected_type:
                         self.selected_event = i
                         self.events_list.setCurrentRow(i)
                 return
 
-        # Save current state for undo
         self.save_event_state()
 
-        # Create new event
         event = {"name": selected_type, "start": -1, "end": -1}
         self.events.append(event)
         self.selected_event = len(self.events) - 1
         self.has_unsaved_changes = True
 
-        # Reset dropdown to default
         self.event_type_combo.setCurrentIndex(0)
 
         self.update_event_list()
@@ -1073,10 +988,8 @@ class VideoAnnotator(QMainWindow):
             )
             return
 
-        # Save current state for undo
         self.save_event_state()
 
-        # Check if this would create an invalid state
         if (
             self.events[self.selected_event]["end"] != -1
             and self.current_frame > self.events[self.selected_event]["end"]
@@ -1102,10 +1015,8 @@ class VideoAnnotator(QMainWindow):
             )
             return
 
-        # Save current state for undo
         self.save_event_state()
 
-        # Check if this would create an invalid state
         if (
             self.events[self.selected_event]["start"] != -1
             and self.current_frame < self.events[self.selected_event]["start"]
@@ -1127,12 +1038,10 @@ class VideoAnnotator(QMainWindow):
             return
 
         if 0 <= self.selected_event < len(self.events):
-            # Save current state for undo
             self.save_event_state()
 
             self.events.pop(self.selected_event)
 
-            # Update selection
             if not self.events:
                 self.selected_event = None
             elif self.selected_event >= len(self.events):
@@ -1151,7 +1060,6 @@ class VideoAnnotator(QMainWindow):
                 f"{event['name']}: Start={start_str}, End={end_str}"
             )
 
-        # Select current event in the list
         if self.selected_event is not None:
             self.events_list.setCurrentRow(self.selected_event)
 
@@ -1184,21 +1092,16 @@ class VideoAnnotator(QMainWindow):
         csv_path = os.path.join(video_dir, "events.csv")
 
         try:
-            # Collect all monitors that have been annotated
             annotated_monitors = set()
             rows_to_write = []
 
-            # Process annotated events
             for event in self.events:
-                # Extract monitor_id and event_type from event name
-                # Event name format: "Approach M1" or "View M1"
                 parts = event["name"].split()
                 if len(parts) >= 2:
-                    monitor_id = parts[-1]  # M1, M2, M3, or M4
+                    monitor_id = parts[-1]
                     event_type = "approach" if "Approach" in event["name"] else "view"
                     annotated_monitors.add(monitor_id)
 
-                    # Validate that event has both start and end if not N.A.
                     if event["start"] == -1 or event["end"] == -1:
                         QMessageBox.warning(
                             self,
@@ -1207,14 +1110,11 @@ class VideoAnnotator(QMainWindow):
                         )
                         return
 
-                    # Calculate duration
                     duration = self.calculate_duration(event["start"], event["end"])
                     duration_str = str(duration) if duration is not None else "N.A."
 
-                    # Get monitor image for this monitor
                     image_name = self.metadata.get(monitor_id, "")
 
-                    # Create row
                     row = [
                         self.metadata["participant_id"],
                         self.metadata["file_name"],
@@ -1229,15 +1129,12 @@ class VideoAnnotator(QMainWindow):
                     ]
                     rows_to_write.append(row)
 
-            # Add N.A. entries for monitors that weren't annotated
             all_monitors = {"M1", "M2", "M3", "M4"}
             missing_monitors = all_monitors - annotated_monitors
 
             for monitor_id in missing_monitors:
-                # Get monitor image for this monitor
                 image_name = self.metadata.get(monitor_id, "")
 
-                # Add N.A. row for this monitor
                 na_row = [
                     self.metadata["participant_id"],
                     self.metadata["file_name"],
@@ -1252,10 +1149,8 @@ class VideoAnnotator(QMainWindow):
                 ]
                 rows_to_write.append(na_row)
 
-            # Sort rows by start
             rows_to_write.sort(key=sort_key)
 
-            # Write to CSV
             with open(csv_path, "w", newline="") as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerow(
@@ -1288,11 +1183,9 @@ class VideoAnnotator(QMainWindow):
 
                 for row in reader:
 
-                    # Skip N.A. entries
                     if row.get("event_type", "") == "N.A.":
                         continue
 
-                    # Reconstruct event name
                     monitor_id = row.get("monitor_id", "")
                     event_type = row.get("event_type", "")
 
@@ -1301,9 +1194,8 @@ class VideoAnnotator(QMainWindow):
                     elif event_type == "view":
                         event_name = f"View {monitor_id}"
                     else:
-                        continue  # Skip unknown event types
+                        continue
 
-                    # Parse start and end times
                     start_frame = row.get("start_frame", "N.A.")
                     end_frame = row.get("end_frame", "N.A.")
 
@@ -1320,12 +1212,10 @@ class VideoAnnotator(QMainWindow):
                     }
                     self.events.append(event)
 
-            # Reset unsaved changes flag since we just loaded from disk
             self.has_unsaved_changes = False
 
             self.update_event_list()
 
-            # Set first event as selected if available
             if self.events:
                 self.selected_event = 0
                 self.events_list.setCurrentRow(0)
@@ -1336,7 +1226,6 @@ class VideoAnnotator(QMainWindow):
     def update_metadata_ui(self):
         """Update metadata UI fields with current metadata values"""
 
-        # Update UI with current metadata
         self.participant_id_input.setText(self.metadata["participant_id"])
         self.condition_combo.setCurrentText(self.metadata["condition"])
         self.series_title_input.setText(self.metadata["series_title"])
@@ -1347,28 +1236,22 @@ class VideoAnnotator(QMainWindow):
             with open(metadata_path, "r") as csvfile:
                 reader = csv.DictReader(csvfile)
 
-                # Read the first (and likely only) row
                 for row in reader:
-                    # Load metadata fields
                     self.metadata["participant_id"] = row.get("participant_id", "")
                     self.metadata["condition"] = row.get("condition", "")
                     self.metadata["series_title"] = row.get("series_title", "")
-                    # file_name is already auto-filled from directory
 
                     self.metadata["M1"] = row.get("monitor_1_image", "")
                     self.metadata["M2"] = row.get("monitor_2_image", "")
                     self.metadata["M3"] = row.get("monitor_3_image", "")
                     self.metadata["M4"] = row.get("monitor_4_image", "")
 
-                    # Only process the first row
                     break
 
-            # Update UI after loading metadata
             self.update_metadata_ui()
 
         except Exception as e:
             print(f"Error loading metadata CSV: {e}")
-            # Don't show error dialog since this is optional functionality
 
     def jump_forward_10(self):
         """Jump 10 frames forward"""
@@ -1378,7 +1261,7 @@ class VideoAnnotator(QMainWindow):
         target_frame = min(self.current_frame + 10, self.total_frames - 1)
         if target_frame != self.current_frame:
             self.current_frame = target_frame
-            self.last_frame_read = -1  # Force seek
+            self.last_frame_read = -1
             self.display_frame()
 
     def jump_backward_10(self):
@@ -1389,16 +1272,13 @@ class VideoAnnotator(QMainWindow):
         target_frame = max(self.current_frame - 10, 0)
         if target_frame != self.current_frame:
             self.current_frame = target_frame
-            self.last_frame_read = -1  # Force seek
+            self.last_frame_read = -1
             self.display_frame()
 
     def keyPressEvent(self, event: QKeyEvent):
-        # Video playback shortcuts are now handled by QShortcut objects
-        # This method can be simplified or removed entirely
         super().keyPressEvent(event)
 
     def closeEvent(self, event):
-        # Check for unsaved changes before closing
         if self.has_unsaved_changes:
             reply = QMessageBox.question(
                 self,
@@ -1416,7 +1296,6 @@ class VideoAnnotator(QMainWindow):
                 event.ignore()
                 return
 
-        # Clean up resources
         if self.cap is not None:
             self.cap.release()
         event.accept()
@@ -1425,7 +1304,6 @@ class VideoAnnotator(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    # Apply dark theme
     apply_dark_theme(app)
 
     player = VideoAnnotator()
