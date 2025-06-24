@@ -60,81 +60,88 @@ import re
 
 class PupilSizePlot(FigureCanvas):
     """Custom matplotlib widget for pupil size visualization"""
-    
+
     def __init__(self, parent=None):
-        self.figure = Figure(figsize=(12, 2), facecolor='#2b2b2b')
+        self.figure = Figure(figsize=(12, 2), facecolor="#2b2b2b")
         super().__init__(self.figure)
         self.setParent(parent)
-        
+
         self.ax = self.figure.add_subplot(111)
-        self.ax.set_facecolor('#2b2b2b')
-        
+        self.ax.set_facecolor("#2b2b2b")
+
         self.pupil_data = None
         self.frame_data = None
         self.total_frames = 0
-        
+
         # Initialize with clean empty state
         self.setup_empty_plot()
-    
+
     def setup_empty_plot(self):
         """Setup a clean empty plot state"""
         self.ax.clear()
-        self.ax.set_facecolor('#2b2b2b')
-        
+        self.ax.set_facecolor("#2b2b2b")
+
         # Remove all axes, spines, ticks
         self.ax.set_xticks([])
         self.ax.set_yticks([])
         for spine in self.ax.spines.values():
             spine.set_visible(False)
-        
+
         self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
         self.draw()
-        
+
     def update_data(self, gaze_data, total_frames):
         """Update pupil size data"""
         self.total_frames = total_frames
-        
-        if gaze_data is not None and 'pup_diam_r' in gaze_data.columns:
+
+        if gaze_data is not None and "pup_diam_r" in gaze_data.columns:
             # Extract frame indices and pupil diameter data
-            self.frame_data = gaze_data['frame_idx'].values
-            self.pupil_data = gaze_data['pup_diam_r'].values
-            
+            self.frame_data = gaze_data["frame_idx"].values
+            self.pupil_data = gaze_data["pup_diam_r"].values
+
             # Remove NaN values for plotting
             valid_mask = ~np.isnan(self.pupil_data)
             self.frame_data = self.frame_data[valid_mask]
             self.pupil_data = self.pupil_data[valid_mask]
-            
+
             self.plot_data()
         else:
             self.clear_plot()
-    
+
     def plot_data(self):
         """Plot the pupil size data"""
         self.ax.clear()
-        
+
         if self.pupil_data is not None and len(self.pupil_data) > 0:
             # Set dark background
-            self.ax.set_facecolor('#2b2b2b')
-            
+            self.ax.set_facecolor("#2b2b2b")
+
             # Plot pupil size with a nice purple color
-            self.ax.plot(self.frame_data, self.pupil_data, color='#8B7AA2', linewidth=1.5, alpha=1.0)
+            self.ax.plot(
+                self.frame_data,
+                self.pupil_data,
+                color="#8B7AA2",
+                linewidth=1.5,
+                alpha=1.0,
+            )
             self.ax.set_xlim(0, self.total_frames)
-            
+
             # Remove x-axis ticks and labels
             self.ax.set_xticks([])
-            
-            self.ax.tick_params(axis='y', colors='white', labelsize=8, pad=-15, 
-                              direction='in', length=0)
-            
+
+            self.ax.tick_params(
+                axis="y", colors="white", labelsize=8, pad=-15, direction="in", length=0
+            )
+
             for spine in self.ax.spines.values():
                 spine.set_visible(False)
-            
+
             # Add very subtle grid only on y-axis
-            self.ax.grid(True, alpha=0.1, color='white', axis='y')
-        
+            self.ax.grid(True, alpha=0.1, color="white", axis="y")
+
         self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
         self.draw()
-    
+
     def clear_plot(self):
         """Clear the plot and return to clean empty state"""
         self.setup_empty_plot()
@@ -377,11 +384,15 @@ class VideoAnnotator(QMainWindow):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         center_layout.addWidget(self.video_label, 1)
-        
+
         self.annotation_info_label = QLabel("")
-        self.annotation_info_label.setStyleSheet("color: white; font-size: 14px; font-weight: bold;")
+        self.annotation_info_label.setStyleSheet(
+            "color: white; font-size: 14px; font-weight: bold;"
+        )
         self.annotation_info_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.annotation_info_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.annotation_info_label.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents
+        )
         self.annotation_info_label.setParent(self.video_label)
         self.annotation_info_label.hide()
 
@@ -391,7 +402,7 @@ class VideoAnnotator(QMainWindow):
         pupil_label.setStyleSheet("color: white; font-size: 12px; margin-bottom: 2px;")
         pupil_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         control_layout.addWidget(pupil_label)
-        
+
         self.pupil_plot = PupilSizePlot()
         self.pupil_plot.setMaximumHeight(120)
         control_layout.addWidget(self.pupil_plot)
@@ -563,19 +574,19 @@ class VideoAnnotator(QMainWindow):
 
         self.save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
         self.save_shortcut.activated.connect(self.save_events)
-        
+
         self.play_pause_shortcut = QShortcut(QKeySequence("Space"), self)
         self.play_pause_shortcut.activated.connect(self.toggle_play)
-        
+
         self.next_frame_shortcut = QShortcut(QKeySequence("Right"), self)
         self.next_frame_shortcut.activated.connect(self.next_frame)
-        
+
         self.prev_frame_shortcut = QShortcut(QKeySequence("Left"), self)
         self.prev_frame_shortcut.activated.connect(self.prev_frame)
-        
+
         self.jump_forward_shortcut = QShortcut(QKeySequence("Shift+Right"), self)
         self.jump_forward_shortcut.activated.connect(self.jump_forward_10)
-        
+
         self.jump_backward_shortcut = QShortcut(QKeySequence("Shift+Left"), self)
         self.jump_backward_shortcut.activated.connect(self.jump_backward_10)
 
@@ -753,11 +764,11 @@ class VideoAnnotator(QMainWindow):
 
         if self.current_frame != self.last_frame_read + 1:
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame)
-        
+
         ret, frame = self.cap.read()
         if not ret:
             return
-        
+
         # Update last frame read
         self.last_frame_read = self.current_frame
 
@@ -790,21 +801,29 @@ class VideoAnnotator(QMainWindow):
                 cv2.BORDER_CONSTANT,
                 value=event_color,
             )
-            
+
             if current_event:
-                duration = self.calculate_duration(current_event["start"], current_event["end"])
+                duration = self.calculate_duration(
+                    current_event["start"], current_event["end"]
+                )
                 duration_str = f"{duration}s" if duration is not None else "N/A"
-                
-                event_type = "Approach" if "Approach" in current_event["name"] else "View"
+
+                event_type = (
+                    "Approach" if "Approach" in current_event["name"] else "View"
+                )
                 monitor = current_event["name"].split()[-1]
                 annotation_text = f"{event_type} {monitor} ({duration_str})"
-                
-                color_hex = f"#{event_color[2]:02x}{event_color[1]:02x}{event_color[0]:02x}"
-                
+
+                color_hex = (
+                    f"#{event_color[2]:02x}{event_color[1]:02x}{event_color[0]:02x}"
+                )
+
                 self.annotation_info_label.setText(annotation_text)
-                self.annotation_info_label.setStyleSheet(f"color: {color_hex}; font-size: 14px; font-weight: bold;")
+                self.annotation_info_label.setStyleSheet(
+                    f"color: {color_hex}; font-size: 14px; font-weight: bold;"
+                )
                 self.annotation_info_label.adjustSize()  # Resize to fit content
-                
+
                 # Position the label at top-left of the actual video image
                 self.position_annotation_overlay()
                 self.annotation_info_label.show()
@@ -824,19 +843,19 @@ class VideoAnnotator(QMainWindow):
         if self.current_frame in self.frame_to_gaze:
             painter = QPainter(scaled_pixmap)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            
+
             scale_x = scaled_pixmap.width() / w
             scale_y = scaled_pixmap.height() / h
-            
+
             for x, y in self.frame_to_gaze[self.current_frame]:
                 if 0 <= x < w and 0 <= y < h:
                     scaled_x = int(x * scale_x)
                     scaled_y = int(y * scale_y)
-                    
+
                     painter.setPen(QPen(QColor(0, 255, 0, 150), 1))
                     painter.setBrush(QBrush(QColor(0, 255, 0, 150)))
                     painter.drawEllipse(scaled_x - 2, scaled_y - 2, 4, 4)
-            
+
             painter.end()
 
         self.video_label.setPixmap(scaled_pixmap)
@@ -849,36 +868,35 @@ class VideoAnnotator(QMainWindow):
         self.timeline_slider.setValue(self.current_frame)
         self.timeline_slider.blockSignals(False)
 
-
     def position_annotation_overlay(self):
         """Position the annotation overlay at the top-left of the actual video image"""
         if not self.video_label.pixmap():
             return
-            
+
         # Get the video label size and the pixmap size
         label_size = self.video_label.size()
         pixmap_size = self.video_label.pixmap().size()
-        
+
         # Calculate the actual position of the video image within the label
         # (accounting for aspect ratio scaling and centering)
         label_width = label_size.width()
         label_height = label_size.height()
         pixmap_width = pixmap_size.width()
         pixmap_height = pixmap_size.height()
-        
+
         # Calculate scaling factor (keeping aspect ratio)
         scale_x = label_width / pixmap_width
         scale_y = label_height / pixmap_height
         scale = min(scale_x, scale_y)
-        
+
         # Calculate actual displayed image size
         display_width = int(pixmap_width * scale)
         display_height = int(pixmap_height * scale)
-        
+
         # Calculate offset to center the image in the label
         offset_x = (label_width - display_width) // 2
         offset_y = (label_height - display_height) // 2
-        
+
         # Position the annotation at top-left of the actual video image with small margin
         self.annotation_info_label.move(offset_x + 10, offset_y + 10)
 
@@ -1272,7 +1290,7 @@ class VideoAnnotator(QMainWindow):
         """Jump 10 frames forward"""
         if self.cap is None or not self.cap.isOpened():
             return
-        
+
         target_frame = min(self.current_frame + 10, self.total_frames - 1)
         if target_frame != self.current_frame:
             self.current_frame = target_frame
@@ -1283,7 +1301,7 @@ class VideoAnnotator(QMainWindow):
         """Jump 10 frames backward"""
         if self.cap is None or not self.cap.isOpened():
             return
-        
+
         target_frame = max(self.current_frame - 10, 0)
         if target_frame != self.current_frame:
             self.current_frame = target_frame
