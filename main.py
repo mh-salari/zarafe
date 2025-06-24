@@ -87,7 +87,6 @@ class PupilSizePlot(FigureCanvas):
         for spine in self.ax.spines.values():
             spine.set_visible(False)
         
-        # Set tight layout with no padding
         self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
         self.draw()
         
@@ -121,16 +120,18 @@ class PupilSizePlot(FigureCanvas):
             self.ax.plot(self.frame_data, self.pupil_data, color='#8B7AA2', linewidth=1.5, alpha=1.0)
             self.ax.set_xlim(0, self.total_frames)
             
-            # Remove all axes, labels and ticks for cleaner look
+            # Remove x-axis ticks and labels
             self.ax.set_xticks([])
-            self.ax.set_yticks([])
+            
+            self.ax.tick_params(axis='y', colors='white', labelsize=8, pad=-15, 
+                              direction='in', length=0)
+            
             for spine in self.ax.spines.values():
                 spine.set_visible(False)
             
             # Add very subtle grid only on y-axis
             self.ax.grid(True, alpha=0.1, color='white', axis='y')
         
-        # Remove any padding/margins
         self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
         self.draw()
     
