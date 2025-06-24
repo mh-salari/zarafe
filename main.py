@@ -14,6 +14,7 @@ import csv
 import cv2
 import pandas as pd
 import platform
+import numpy as np
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -45,7 +46,107 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtCore import Qt, QTimer
 
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+import matplotlib.style as style
+
 import re
+
+
+class PupilSizePlot(FigureCanvas):
+    """Custom matplotlib widget for pupil size visualization"""
+    
+    def __init__(self, parent=None):
+        self.figure = Figure(figsize=(12, 2), facecolor='#2b2b2b')
+        super().__init__(self.figure)
+        self.setParent(parent)
+        
+        self.ax = self.figure.add_subplot(111)
+        self.ax.set_facecolor('#2b2b2b')
+        
+        self.pupil_data = None
+        self.frame_data = None
+        self.current_frame_line = None
+        self.total_frames = 0
+        
+        # Initialize with clean empty state
+        self.setup_empty_plot()
+    
+    def setup_empty_plot(self):
+        """Setup a clean empty plot state"""
+        self.ax.clear()
+        self.ax.set_facecolor('#2b2b2b')
+        
+        # Remove all axes, spines, ticks
+        self.ax.set_xticks([])
+        self.ax.set_yticks([])
+        for spine in self.ax.spines.values():
+            spine.set_visible(False)
+        
+        # Set tight layout with no padding
+        self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        self.draw()
+        
+    def update_data(self, gaze_data, total_frames):
+        """Update pupil size data"""
+        self.total_frames = total_frames
+        
+        if gaze_data is not None and 'pup_diam_r' in gaze_data.columns:
+            # Extract frame indices and pupil diameter data
+            self.frame_data = gaze_data['frame_idx'].values
+            self.pupil_data = gaze_data['pup_diam_r'].values
+            
+            # Remove NaN values for plotting
+            valid_mask = ~np.isnan(self.pupil_data)
+            self.frame_data = self.frame_data[valid_mask]
+            self.pupil_data = self.pupil_data[valid_mask]
+            
+            self.plot_data()
+        else:
+            self.clear_plot()
+    
+    def plot_data(self):
+        """Plot the pupil size data"""
+        self.ax.clear()
+        
+        if self.pupil_data is not None and len(self.pupil_data) > 0:
+            # Set dark background
+            self.ax.set_facecolor('#2b2b2b')
+            
+            # Plot pupil size with a nice purple color
+            self.ax.plot(self.frame_data, self.pupil_data, color='#8B7AA2', linewidth=1.5, alpha=1.0)
+            self.ax.set_xlim(0, self.total_frames)
+            
+            # Remove all axes, labels and ticks for cleaner look
+            self.ax.set_xticks([])
+            self.ax.set_yticks([])
+            for spine in self.ax.spines.values():
+                spine.set_visible(False)
+            
+            # Add very subtle grid only on y-axis
+            self.ax.grid(True, alpha=0.1, color='white', axis='y')
+        
+        # Remove any padding/margins
+        self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        self.draw()
+    
+    def update_current_frame(self, frame_number):
+        """Update the current frame indicator on the plot"""
+        if self.pupil_data is None:
+            return
+            
+        # Remove previous line if exists
+        if self.current_frame_line is not None:
+            self.current_frame_line.remove()
+        
+        # Add new current frame line
+        self.current_frame_line = self.ax.axvline(x=frame_number, color='red', linewidth=2, alpha=0.8)
+        self.draw()
+    
+    def clear_plot(self):
+        """Clear the plot and return to clean empty state"""
+        self.setup_empty_plot()
 
 
 # Sort rows by start, handling "N.A." values
@@ -298,6 +399,16 @@ class VideoAnnotator(QMainWindow):
         # Video controls at bottom
         control_layout = QVBoxLayout()
 
+        # Pupil size label and plot above timeline slider
+        pupil_label = QLabel("Pupil Diameter (mm)")
+        pupil_label.setStyleSheet("color: white; font-size: 12px; margin-bottom: 2px;")
+        pupil_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        control_layout.addWidget(pupil_label)
+        
+        self.pupil_plot = PupilSizePlot()
+        self.pupil_plot.setMaximumHeight(120)
+        control_layout.addWidget(self.pupil_plot)
+
         # Timeline slider
         self.timeline_slider = QSlider(Qt.Orientation.Horizontal)
         self.timeline_slider.setMinimum(0)
@@ -480,6 +591,24 @@ class VideoAnnotator(QMainWindow):
         # Ctrl+S for save
         self.save_shortcut = QShortcut(QKeySequence("Ctrl+S"), self)
         self.save_shortcut.activated.connect(self.save_events)
+        
+        # Space for play/pause
+        self.play_pause_shortcut = QShortcut(QKeySequence("Space"), self)
+        self.play_pause_shortcut.activated.connect(self.toggle_play)
+        
+        # Arrow keys for frame navigation
+        self.next_frame_shortcut = QShortcut(QKeySequence("Right"), self)
+        self.next_frame_shortcut.activated.connect(self.next_frame)
+        
+        self.prev_frame_shortcut = QShortcut(QKeySequence("Left"), self)
+        self.prev_frame_shortcut.activated.connect(self.prev_frame)
+        
+        # Shift+Arrow keys for jumping 10 frames
+        self.jump_forward_shortcut = QShortcut(QKeySequence("Shift+Right"), self)
+        self.jump_forward_shortcut.activated.connect(self.jump_forward_10)
+        
+        self.jump_backward_shortcut = QShortcut(QKeySequence("Shift+Left"), self)
+        self.jump_backward_shortcut.activated.connect(self.jump_backward_10)
 
     def open_directory(self):
         dir_path = QFileDialog.getExistingDirectory(self, "Select Directory")
@@ -604,6 +733,9 @@ class VideoAnnotator(QMainWindow):
                 self.load_gaze_data(gaze_path)
             except Exception as e:
                 print(f"Error loading gaze data: {e}")
+
+        # Update pupil plot with gaze data
+        self.pupil_plot.update_data(self.gaze_data, self.total_frames)
 
         # Update UI
         self.display_frame()
@@ -739,6 +871,9 @@ class VideoAnnotator(QMainWindow):
         self.timeline_slider.blockSignals(True)
         self.timeline_slider.setValue(self.current_frame)
         self.timeline_slider.blockSignals(False)
+
+        # Update pupil plot current frame indicator
+        self.pupil_plot.update_current_frame(self.current_frame)
 
     def slider_moved(self):
         if self.cap is None or not self.cap.isOpened():
@@ -1171,35 +1306,34 @@ class VideoAnnotator(QMainWindow):
             print(f"Error loading metadata CSV: {e}")
             # Don't show error dialog since this is optional functionality
 
-    def keyPressEvent(self, event: QKeyEvent):
-        modifiers = event.modifiers()
+    def jump_forward_10(self):
+        """Jump 10 frames forward"""
+        if self.cap is None or not self.cap.isOpened():
+            return
+        
+        for _ in range(10):
+            if self.current_frame < self.total_frames - 1:
+                self.current_frame += 1
+            else:
+                break
+        self.display_frame()
 
-        if event.key() == Qt.Key.Key_Right:
-            if modifiers & Qt.KeyboardModifier.ShiftModifier:
-                # Jump 10 frames forward with Shift+Right
-                for _ in range(10):
-                    if self.current_frame < self.total_frames - 1:
-                        self.current_frame += 1
-                    else:
-                        break
-                self.display_frame()
+    def jump_backward_10(self):
+        """Jump 10 frames backward"""
+        if self.cap is None or not self.cap.isOpened():
+            return
+        
+        for _ in range(10):
+            if self.current_frame > 0:
+                self.current_frame -= 1
             else:
-                self.next_frame()
-        elif event.key() == Qt.Key.Key_Left:
-            if modifiers & Qt.KeyboardModifier.ShiftModifier:
-                # Jump 10 frames backward with Shift+Left
-                for _ in range(10):
-                    if self.current_frame > 0:
-                        self.current_frame -= 1
-                    else:
-                        break
-                self.display_frame()
-            else:
-                self.prev_frame()
-        elif event.key() == Qt.Key.Key_Space:
-            self.toggle_play()
-        else:
-            super().keyPressEvent(event)
+                break
+        self.display_frame()
+
+    def keyPressEvent(self, event: QKeyEvent):
+        # Video playback shortcuts are now handled by QShortcut objects
+        # This method can be simplified or removed entirely
+        super().keyPressEvent(event)
 
     def closeEvent(self, event):
         # Check for unsaved changes before closing
