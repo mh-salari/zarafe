@@ -72,6 +72,7 @@ class PupilSizePlot(FigureCanvas):
         self.pupil_data = None
         self.frame_data = None
         self.total_frames = 0
+        self.events = []  # Store events for highlighting
 
         # Initialize with clean empty state
         self.setup_empty_plot()
@@ -90,9 +91,10 @@ class PupilSizePlot(FigureCanvas):
         self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
         self.draw()
 
-    def update_data(self, gaze_data, total_frames):
-        """Update pupil size data"""
+    def update_data(self, gaze_data, total_frames, events=None):
+        """Update pupil size data and events"""
         self.total_frames = total_frames
+        self.events = events or []
 
         if gaze_data is not None and "pup_diam_r" in gaze_data.columns:
             # Extract frame indices and pupil diameter data
@@ -109,12 +111,33 @@ class PupilSizePlot(FigureCanvas):
             self.clear_plot()
 
     def plot_data(self):
-        """Plot the pupil size data"""
+        """Plot the pupil size data with event highlights"""
         self.ax.clear()
 
         if self.pupil_data is not None and len(self.pupil_data) > 0:
             # Set dark background
             self.ax.set_facecolor("#2b2b2b")
+
+            # Highlight event regions first (so they appear behind the data line)
+            if self.events:
+                y_min = np.min(self.pupil_data)
+                y_max = np.max(self.pupil_data)
+                y_range = y_max - y_min
+
+                for event in self.events:
+                    if event["start"] != -1 and event["end"] != -1:
+                        if "View" in event["name"]:
+                            color = "#19647B"  # BGR(123, 100, 25) -> RGB(25, 100, 123)
+                        else:
+                            color = "#3DAB7B"  # BGR(123, 171, 61) -> RGB(61, 171, 123)
+
+                        self.ax.axvspan(
+                            event["start"],
+                            event["end"],
+                            alpha=0.2,
+                            color=color,
+                            label=event["name"] if event == self.events[0] else "",
+                        )
 
             # Plot pupil size with a nice purple color
             self.ax.plot(
@@ -704,7 +727,7 @@ class VideoAnnotator(QMainWindow):
             except Exception as e:
                 print(f"Error loading gaze data: {e}")
 
-        self.pupil_plot.update_data(self.gaze_data, self.total_frames)
+        self.pupil_plot.update_data(self.gaze_data, self.total_frames, self.events)
 
         self.display_frame()
 
@@ -964,6 +987,7 @@ class VideoAnnotator(QMainWindow):
             self.has_unsaved_changes = True
 
         self.update_event_list()
+        self.pupil_plot.update_data(self.gaze_data, self.total_frames, self.events)
 
         if prev_selected is not None and prev_selected < len(self.events):
             self.selected_event = prev_selected
@@ -1005,6 +1029,7 @@ class VideoAnnotator(QMainWindow):
         self.event_type_combo.setCurrentIndex(0)
 
         self.update_event_list()
+        self.pupil_plot.update_data(self.gaze_data, self.total_frames, self.events)
 
     def select_event(self, item):
         index = self.events_list.row(item)
@@ -1037,6 +1062,7 @@ class VideoAnnotator(QMainWindow):
         self.events[self.selected_event]["start"] = self.current_frame
         self.has_unsaved_changes = True
         self.update_event_list()
+        self.pupil_plot.update_data(self.gaze_data, self.total_frames, self.events)
 
     def mark_end(self):
         if self.cap is None:
@@ -1064,6 +1090,7 @@ class VideoAnnotator(QMainWindow):
         self.events[self.selected_event]["end"] = self.current_frame
         self.has_unsaved_changes = True
         self.update_event_list()
+        self.pupil_plot.update_data(self.gaze_data, self.total_frames, self.events)
 
     def delete_event(self):
         if self.selected_event is None:
@@ -1082,6 +1109,7 @@ class VideoAnnotator(QMainWindow):
 
             self.has_unsaved_changes = True
             self.update_event_list()
+            self.pupil_plot.update_data(self.gaze_data, self.total_frames, self.events)
 
     def update_event_list(self):
         self.events_list.clear()
@@ -1248,6 +1276,7 @@ class VideoAnnotator(QMainWindow):
             self.has_unsaved_changes = False
 
             self.update_event_list()
+            self.pupil_plot.update_data(self.gaze_data, self.total_frames, self.events)
 
             if self.events:
                 self.selected_event = 0
