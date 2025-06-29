@@ -12,9 +12,16 @@ import sys
 import os
 import csv
 import cv2
-import pandas as pd
 import platform
 import numpy as np
+import pandas as pd
+from scipy import interpolate
+import re
+
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+
+
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -49,13 +56,6 @@ from PyQt6.QtGui import (
     QColor,
 )
 from PyQt6.QtCore import Qt, QTimer
-
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
-import matplotlib.style as style
-
-import re
 
 
 class PupilSizePlot(FigureCanvas):
@@ -110,27 +110,86 @@ class PupilSizePlot(FigureCanvas):
         else:
             self.clear_plot()
 
+    def clean_pupil_data(self, pupil_data, frame_data):
+        """
+        Remove outliers from pupil diameter data using MAD
+        """
+        if pupil_data is None or len(pupil_data) < 3:
+            return pupil_data, np.zeros(len(pupil_data), dtype=bool)
+
+        data = np.array(pupil_data, dtype=float)
+
+        # Calculate actual sampling rate from timestamps
+        if hasattr(self, "gaze_data") and "pupil_timestamp" in self.gaze_data.columns:
+            timestamps = self.gaze_data["pupil_timestamp"].values
+            time_diffs = np.diff(timestamps)
+            median_diff = np.median(time_diffs[time_diffs > 0])
+            sampling_rate = 1000.0 / median_diff  # Convert ms to Hz
+        else:
+            sampling_rate = 100.0  # Default assumption
+
+        # Window size: 0.5 seconds worth of samples
+        window_size = int(sampling_rate * 0.5)
+        window_size = max(10, window_size)  # At least 10 samples
+
+        outlier_mask = np.zeros(len(data), dtype=bool)
+
+        for i in range(len(data)):
+            # Define window bounds
+            start = max(0, i - window_size // 2)
+            end = min(len(data), i + window_size // 2)
+
+            # Get local window
+            window = data[start:end]
+
+            # Calculate local median and MAD
+            local_median = np.median(window)
+            local_mad = np.median(np.abs(window - local_median))
+
+            # Use 3 MADs as threshold
+            if local_mad > 0:
+                z_score = abs(data[i] - local_median) / (1.4826 * local_mad)
+                if z_score > 3:
+                    outlier_mask[i] = True
+
+        # Interpolate outliers
+        cleaned_data = data.copy()
+        outlier_indices = np.where(outlier_mask)[0]
+
+        if len(outlier_indices) > 0:
+            valid_indices = np.where(~outlier_mask)[0]
+            if len(valid_indices) > 1:
+                f = interpolate.interp1d(
+                    valid_indices,
+                    data[valid_indices],
+                    kind="linear",
+                    bounds_error=False,
+                    fill_value=(data[valid_indices[0]], data[valid_indices[-1]]),
+                )
+                cleaned_data[outlier_indices] = f(outlier_indices)
+
+        return cleaned_data, outlier_mask
+
     def plot_data(self):
         """Plot the pupil size data with event highlights"""
         self.ax.clear()
-
         if self.pupil_data is not None and len(self.pupil_data) > 0:
-            # Set dark background
             self.ax.set_facecolor("#2b2b2b")
 
-            # Highlight event regions first (so they appear behind the data line)
-            if self.events:
-                y_min = np.min(self.pupil_data)
-                y_max = np.max(self.pupil_data)
-                y_range = y_max - y_min
+            cleaned_pupil_data, outlier_mask = self.clean_pupil_data(
+                self.pupil_data, self.frame_data
+            )
 
+            if self.events:
+                y_min = np.min(cleaned_pupil_data)
+                y_max = np.max(cleaned_pupil_data)
+                y_range = y_max - y_min
                 for event in self.events:
                     if event["start"] != -1 and event["end"] != -1:
                         if "View" in event["name"]:
-                            color = "#19647B"  # BGR(123, 100, 25) -> RGB(25, 100, 123)
+                            color = "#19647B"
                         else:
-                            color = "#3DAB7B"  # BGR(123, 171, 61) -> RGB(61, 171, 123)
-
+                            color = "#3DAB7B"
                         self.ax.axvspan(
                             event["start"],
                             event["end"],
@@ -139,29 +198,51 @@ class PupilSizePlot(FigureCanvas):
                             label=event["name"] if event == self.events[0] else "",
                         )
 
-            # Plot pupil size with a nice purple color
-            self.ax.plot(
-                self.frame_data,
-                self.pupil_data,
-                color="#8B7AA2",
-                linewidth=1.5,
-                alpha=1.0,
+            # Plot original data where not interpolated
+            valid_mask = ~outlier_mask
+            diff_valid = np.diff(
+                np.concatenate(([False], valid_mask, [False])).astype(int)
             )
+            segment_starts = np.where(diff_valid == 1)[0]
+            segment_ends = np.where(diff_valid == -1)[0]
+
+            for start, end in zip(segment_starts, segment_ends):
+                self.ax.plot(
+                    self.frame_data[start:end],
+                    cleaned_pupil_data[start:end],
+                    color="#8B7AA2",
+                    linewidth=1.5,
+                    alpha=1.0,
+                )
+
+            # Plot interpolated segments in orange
+            diff_outlier = np.diff(
+                np.concatenate(([False], outlier_mask, [False])).astype(int)
+            )
+            interp_starts = np.where(diff_outlier == 1)[0]
+            interp_ends = np.where(diff_outlier == -1)[0]
+
+            for start, end in zip(interp_starts, interp_ends):
+                if start > 0:
+                    start -= 1
+                if end < len(cleaned_pupil_data):
+                    end += 1
+                self.ax.plot(
+                    self.frame_data[start:end],
+                    cleaned_pupil_data[start:end],
+                    color="#E09F3E",  # Warm orange that complements purple
+                    linewidth=1.5,
+                    alpha=0.9,
+                )
+
             self.ax.set_xlim(0, self.total_frames)
-
-            # Remove x-axis ticks and labels
             self.ax.set_xticks([])
-
             self.ax.tick_params(
                 axis="y", colors="white", labelsize=8, pad=-15, direction="in", length=0
             )
-
             for spine in self.ax.spines.values():
                 spine.set_visible(False)
-
-            # Add very subtle grid only on y-axis
             self.ax.grid(True, alpha=0.1, color="white", axis="y")
-
         self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
         self.draw()
 
