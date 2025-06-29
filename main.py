@@ -72,6 +72,9 @@ class PupilSizePlot(FigureCanvas):
 
         self.pupil_data = None
         self.frame_data = None
+        self.cleaned_pupil_data = None
+        self.outlier_mask = None
+        self.data_cleaned = False
         self.total_frames = 0
         self.events = []  # Store events for highlighting
 
@@ -82,6 +85,11 @@ class PupilSizePlot(FigureCanvas):
         """Setup a clean empty plot state"""
         self.ax.clear()
         self.ax.set_facecolor("#2b2b2b")
+
+        # Reset cleaned data state
+        self.cleaned_pupil_data = None
+        self.outlier_mask = None
+        self.data_cleaned = False
 
         # Remove all axes, spines, ticks
         self.ax.set_xticks([])
@@ -97,15 +105,30 @@ class PupilSizePlot(FigureCanvas):
         self.total_frames = total_frames
         self.events = events or []
 
-        if gaze_data is not None and "pup_diam_r" in gaze_data.columns:
-            # Extract frame indices and pupil diameter data
-            self.frame_data = gaze_data["frame_idx"].values
-            self.pupil_data = gaze_data["pup_diam_r"].values
+        # Check if this is new gaze data or just event updates
+        new_data = (gaze_data is not None and 
+                   (not hasattr(self, 'current_gaze_data') or 
+                    self.current_gaze_data is not gaze_data))
 
-            # Remove NaN values for plotting
-            valid_mask = ~np.isnan(self.pupil_data)
-            self.frame_data = self.frame_data[valid_mask]
-            self.pupil_data = self.pupil_data[valid_mask]
+        if gaze_data is not None and "pup_diam_r" in gaze_data.columns:
+            if new_data:
+                # Only process data if it's actually new
+                self.current_gaze_data = gaze_data
+                
+                # Extract frame indices and pupil diameter data
+                self.frame_data = gaze_data["frame_idx"].values
+                self.pupil_data = gaze_data["pup_diam_r"].values
+
+                # Remove NaN values for plotting
+                valid_mask = ~np.isnan(self.pupil_data)
+                self.frame_data = self.frame_data[valid_mask]
+                self.pupil_data = self.pupil_data[valid_mask]
+
+                # Clean pupil data once for new data
+                self.cleaned_pupil_data, self.outlier_mask = self.clean_pupil_data(
+                    self.pupil_data, self.frame_data
+                )
+                self.data_cleaned = True
 
             self.plot_data()
         else:
@@ -178,14 +201,14 @@ class PupilSizePlot(FigureCanvas):
         if self.pupil_data is not None and len(self.pupil_data) > 0:
             self.ax.set_facecolor("#2b2b2b")
 
-            cleaned_pupil_data, outlier_mask = self.clean_pupil_data(
-                self.pupil_data, self.frame_data
-            )
+            # Use pre-cleaned data
+            cleaned_pupil_data = self.cleaned_pupil_data
+            outlier_mask = self.outlier_mask
 
+            # Plot event highlights
             if self.events:
                 y_min = np.min(cleaned_pupil_data)
                 y_max = np.max(cleaned_pupil_data)
-                y_range = y_max - y_min
                 for event in self.events:
                     if event["start"] != -1 and event["end"] != -1:
                         if "View" in event["name"]:
@@ -232,7 +255,7 @@ class PupilSizePlot(FigureCanvas):
                 self.ax.plot(
                     self.frame_data[start:end],
                     cleaned_pupil_data[start:end],
-                    color="#E09F3E",  # Warm orange that complements purple
+                    color="#D4807A",
                     linewidth=1.5,
                     alpha=0.9,
                 )
