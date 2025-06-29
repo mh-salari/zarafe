@@ -10,17 +10,15 @@ Description:  Modified version for muisti branch - Video annotation tool for mar
 
 import sys
 import os
-import csv
-import cv2
 import platform
+
+import csv
+import re
+
+import cv2
 import numpy as np
 import pandas as pd
 from scipy import interpolate
-import re
-
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
-
 
 from PyQt6.QtWidgets import (
     QApplication,
@@ -56,6 +54,9 @@ from PyQt6.QtGui import (
     QColor,
 )
 from PyQt6.QtCore import Qt, QTimer
+
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 
 
 class PupilSizePlot(FigureCanvas):
@@ -114,6 +115,7 @@ class PupilSizePlot(FigureCanvas):
         """
         Remove outliers from pupil diameter data using MAD
         """
+
         if pupil_data is None or len(pupil_data) < 3:
             return pupil_data, np.zeros(len(pupil_data), dtype=bool)
 
