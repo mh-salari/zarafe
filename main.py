@@ -18,7 +18,7 @@ import re
 import cv2
 import numpy as np
 import pandas as pd
-from scipy import interpolate
+from scipy.ndimage import gaussian_filter1d
 
 from PyQt6.QtWidgets import (
     QApplication,
@@ -55,224 +55,116 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtCore import Qt, QTimer
 
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+import pyqtgraph as pg
+from pyqtgraph import PlotWidget
 
 
-class PupilSizePlot(FigureCanvas):
-    """Custom matplotlib widget for pupil size visualization"""
+class PupilSizePlot(PlotWidget):
+    """Custom PyQtGraph widget for pupil size visualization"""
 
     def __init__(self, parent=None):
-        self.figure = Figure(figsize=(12, 2), facecolor="#2b2b2b")
-        super().__init__(self.figure)
-        self.setParent(parent)
-
-        self.ax = self.figure.add_subplot(111)
-        self.ax.set_facecolor("#2b2b2b")
-
+        super().__init__(parent)
+        
+        # Set dark background
+        self.setBackground('#2b2b2b')
+        
+        self.getPlotItem().hideAxis('bottom')
+        left_axis = self.getPlotItem().getAxis('left')
+        left_axis.setTextPen('white')
+        left_axis.enableAutoSIPrefix(False)
+        left_axis.setTickSpacing(major=1, minor=1)
+        self.getPlotItem().showGrid(y=True, alpha=0.1)
+        
+        # Disable mouse interactions
+        self.getPlotItem().setMouseEnabled(x=False, y=False)
+        self.getPlotItem().setMenuEnabled(False)
+        self.getPlotItem().hideButtons()
+        
         self.pupil_data = None
         self.frame_data = None
-        self.cleaned_pupil_data = None
-        self.outlier_mask = None
-        self.data_cleaned = False
+        self.smoothed_pupil_data = None
         self.total_frames = 0
-        self.events = []  # Store events for highlighting
+        self.events = []
+        
+        self.plot_curve = None
+        self.event_regions = []
 
         # Initialize with clean empty state
         self.setup_empty_plot()
 
     def setup_empty_plot(self):
-        """Setup a clean empty plot state"""
-        self.ax.clear()
-        self.ax.set_facecolor("#2b2b2b")
-
-        # Reset cleaned data state
-        self.cleaned_pupil_data = None
-        self.outlier_mask = None
-        self.data_cleaned = False
-
-        # Remove all axes, spines, ticks
-        self.ax.set_xticks([])
-        self.ax.set_yticks([])
-        for spine in self.ax.spines.values():
-            spine.set_visible(False)
-
-        self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
-        self.draw()
+        self.clear()
+        self.getPlotItem().hideAxis('left')
+        
+        self.smoothed_pupil_data = None
+        self.plot_curve = None
+        self.event_regions = []
 
     def update_data(self, gaze_data, total_frames, events=None):
         """Update pupil size data and events"""
         self.total_frames = total_frames
         self.events = events or []
 
-        # Check if this is new gaze data or just event updates
         new_data = (gaze_data is not None and 
                    (not hasattr(self, 'current_gaze_data') or 
                     self.current_gaze_data is not gaze_data))
 
         if gaze_data is not None and "pup_diam_r" in gaze_data.columns:
             if new_data:
-                # Only process data if it's actually new
                 self.current_gaze_data = gaze_data
                 
-                # Extract frame indices and pupil diameter data
                 self.frame_data = gaze_data["frame_idx"].values
                 self.pupil_data = gaze_data["pup_diam_r"].values
 
-                # Remove NaN values for plotting
                 valid_mask = ~np.isnan(self.pupil_data)
                 self.frame_data = self.frame_data[valid_mask]
                 self.pupil_data = self.pupil_data[valid_mask]
 
-                # Clean pupil data once for new data
-                self.cleaned_pupil_data, self.outlier_mask = self.clean_pupil_data(
-                    self.pupil_data, self.frame_data
-                )
-                self.data_cleaned = True
+                self.smoothed_pupil_data = gaussian_filter1d(self.pupil_data, sigma=3)
 
             self.plot_data()
         else:
             self.clear_plot()
 
-    def clean_pupil_data(self, pupil_data, frame_data):
-        """
-        Remove outliers from pupil diameter data using MAD
-        """
-
-        if pupil_data is None or len(pupil_data) < 3:
-            return pupil_data, np.zeros(len(pupil_data), dtype=bool)
-
-        data = np.array(pupil_data, dtype=float)
-
-        # Calculate actual sampling rate from timestamps
-        if hasattr(self, "gaze_data") and "pupil_timestamp" in self.gaze_data.columns:
-            timestamps = self.gaze_data["pupil_timestamp"].values
-            time_diffs = np.diff(timestamps)
-            median_diff = np.median(time_diffs[time_diffs > 0])
-            sampling_rate = 1000.0 / median_diff  # Convert ms to Hz
-        else:
-            sampling_rate = 100.0  # Default assumption
-
-        # Window size: 0.5 seconds worth of samples
-        window_size = int(sampling_rate * 0.5)
-        window_size = max(10, window_size)  # At least 10 samples
-
-        outlier_mask = np.zeros(len(data), dtype=bool)
-
-        for i in range(len(data)):
-            # Define window bounds
-            start = max(0, i - window_size // 2)
-            end = min(len(data), i + window_size // 2)
-
-            # Get local window
-            window = data[start:end]
-
-            # Calculate local median and MAD
-            local_median = np.median(window)
-            local_mad = np.median(np.abs(window - local_median))
-
-            # Use 3 MADs as threshold
-            if local_mad > 0:
-                z_score = abs(data[i] - local_median) / (1.4826 * local_mad)
-                if z_score > 3:
-                    outlier_mask[i] = True
-
-        # Interpolate outliers
-        cleaned_data = data.copy()
-        outlier_indices = np.where(outlier_mask)[0]
-
-        if len(outlier_indices) > 0:
-            valid_indices = np.where(~outlier_mask)[0]
-            if len(valid_indices) > 1:
-                f = interpolate.interp1d(
-                    valid_indices,
-                    data[valid_indices],
-                    kind="linear",
-                    bounds_error=False,
-                    fill_value=(data[valid_indices[0]], data[valid_indices[-1]]),
-                )
-                cleaned_data[outlier_indices] = f(outlier_indices)
-
-        return cleaned_data, outlier_mask
 
     def plot_data(self):
-        """Plot the pupil size data with event highlights"""
-        self.ax.clear()
+        self.clear()
+        
         if self.pupil_data is not None and len(self.pupil_data) > 0:
-            self.ax.set_facecolor("#2b2b2b")
-
-            # Use pre-cleaned data
-            cleaned_pupil_data = self.cleaned_pupil_data
-            outlier_mask = self.outlier_mask
-
-            # Plot event highlights
+            self.getPlotItem().showAxis('left')
+            self.event_regions = []
+            
             if self.events:
-                y_min = np.min(cleaned_pupil_data)
-                y_max = np.max(cleaned_pupil_data)
                 for event in self.events:
                     if event["start"] != -1 and event["end"] != -1:
                         if "View" in event["name"]:
-                            color = "#19647B"
+                            color = (25, 100, 123, 50)
                         else:
-                            color = "#3DAB7B"
-                        self.ax.axvspan(
-                            event["start"],
-                            event["end"],
-                            alpha=0.2,
-                            color=color,
-                            label=event["name"] if event == self.events[0] else "",
+                            color = (61, 171, 123, 50)
+                        
+                        region = pg.LinearRegionItem(
+                            [event["start"], event["end"]], 
+                            brush=color,
+                            pen='transparent',
+                            movable=False
                         )
-
-            # Plot original data where not interpolated
-            valid_mask = ~outlier_mask
-            diff_valid = np.diff(
-                np.concatenate(([False], valid_mask, [False])).astype(int)
+                        region.lines[0].hide()
+                        region.lines[1].hide()
+                        self.addItem(region)
+                        self.event_regions.append(region)
+            
+            pen = pg.mkPen(color='#8B7AA2', width=2.5)
+            self.plot_curve = self.plot(
+                self.frame_data, 
+                self.smoothed_pupil_data, 
+                pen=pen,
+                antialias=True
             )
-            segment_starts = np.where(diff_valid == 1)[0]
-            segment_ends = np.where(diff_valid == -1)[0]
-
-            for start, end in zip(segment_starts, segment_ends):
-                self.ax.plot(
-                    self.frame_data[start:end],
-                    cleaned_pupil_data[start:end],
-                    color="#8B7AA2",
-                    linewidth=1.5,
-                    alpha=1.0,
-                )
-
-            # Plot interpolated segments in orange
-            diff_outlier = np.diff(
-                np.concatenate(([False], outlier_mask, [False])).astype(int)
-            )
-            interp_starts = np.where(diff_outlier == 1)[0]
-            interp_ends = np.where(diff_outlier == -1)[0]
-
-            for start, end in zip(interp_starts, interp_ends):
-                if start > 0:
-                    start -= 1
-                if end < len(cleaned_pupil_data):
-                    end += 1
-                self.ax.plot(
-                    self.frame_data[start:end],
-                    cleaned_pupil_data[start:end],
-                    color="#D4807A",
-                    linewidth=1.5,
-                    alpha=0.9,
-                )
-
-            self.ax.set_xlim(0, self.total_frames)
-            self.ax.set_xticks([])
-            self.ax.tick_params(
-                axis="y", colors="white", labelsize=8, pad=-15, direction="in", length=0
-            )
-            for spine in self.ax.spines.values():
-                spine.set_visible(False)
-            self.ax.grid(True, alpha=0.1, color="white", axis="y")
-        self.figure.subplots_adjust(left=0, right=1, top=1, bottom=0)
-        self.draw()
+            
+            self.setXRange(0, self.total_frames, padding=0)
+            self.setYRange(np.min(self.smoothed_pupil_data), np.max(self.smoothed_pupil_data), padding=0.1)
 
     def clear_plot(self):
-        """Clear the plot and return to clean empty state"""
         self.setup_empty_plot()
 
 
