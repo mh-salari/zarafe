@@ -139,6 +139,8 @@ class PupilSizePlot(PlotWidget):
                     if event["start"] != -1 and event["end"] != -1:
                         if "View" in event["name"]:
                             color = (25, 100, 123, 50)
+                        elif "Accuracy Test" in event["name"]:
+                            color = (255, 165, 0, 50)  # Orange for accuracy tests
                         else:
                             color = (61, 171, 123, 50)
                         
@@ -359,6 +361,7 @@ class VideoAnnotator(QMainWindow):
             "View M3",
             "Approach M4",
             "View M4",
+            "Accuracy Test",
         ]
 
         # Set application icon
@@ -737,6 +740,11 @@ class VideoAnnotator(QMainWindow):
         if os.path.exists(csv_path):
             self.load_events(csv_path)
             self.save_event_state()
+            
+        # Load marker intervals if they exist
+        marker_path = os.path.join(video_dir, "markerInterval.tsv")
+        if os.path.exists(marker_path):
+            self.load_marker_intervals(marker_path)
 
     def load_gaze_data(self, gaze_path):
         """Load gaze data from TSV file and organize by frame index"""
@@ -805,9 +813,12 @@ class VideoAnnotator(QMainWindow):
             ):
                 frame_in_event = True
                 current_event = event
-                event_color = (
-                    (123, 100, 25) if "View" in event["name"] else (123, 171, 61)
-                )
+                if "View" in event["name"]:
+                    event_color = (123, 100, 25)
+                elif "Accuracy Test" in event["name"]:
+                    event_color = (255, 165, 0)  # Orange for accuracy tests
+                else:
+                    event_color = (123, 171, 61)
                 break
 
         if frame_in_event:
@@ -829,11 +840,14 @@ class VideoAnnotator(QMainWindow):
                 )
                 duration_str = f"{duration}s" if duration is not None else "N/A"
 
-                event_type = (
-                    "Approach" if "Approach" in current_event["name"] else "View"
-                )
-                monitor = current_event["name"].split()[-1]
-                annotation_text = f"{event_type} {monitor} ({duration_str})"
+                if "Accuracy Test" in current_event["name"]:
+                    annotation_text = f"{current_event['name']} ({duration_str})"
+                else:
+                    event_type = (
+                        "Approach" if "Approach" in current_event["name"] else "View"
+                    )
+                    monitor = current_event["name"].split()[-1]
+                    annotation_text = f"{event_type} {monitor} ({duration_str})"
 
                 color_hex = (
                     f"#{event_color[2]:02x}{event_color[1]:02x}{event_color[0]:02x}"
@@ -1004,22 +1018,30 @@ class VideoAnnotator(QMainWindow):
             QMessageBox.warning(self, "Warning", "Please select an event type.")
             return
 
-        for event in self.events:
-            if event["name"] == selected_type:
-                QMessageBox.warning(
-                    self,
-                    "Event Exists",
-                    f"{selected_type} already exists. Please complete or delete it first.",
-                )
-                for i, e in enumerate(self.events):
-                    if e["name"] == selected_type:
-                        self.selected_event = i
-                        self.events_list.setCurrentRow(i)
-                return
+        # For Accuracy Test, allow multiple instances by adding a counter
+        if selected_type == "Accuracy Test":
+            # Count existing accuracy tests
+            accuracy_count = sum(1 for event in self.events if "Accuracy Test" in event["name"])
+            event_name = f"Accuracy Test {accuracy_count + 1}"
+        else:
+            # For other event types, check for duplicates
+            for event in self.events:
+                if event["name"] == selected_type:
+                    QMessageBox.warning(
+                        self,
+                        "Event Exists",
+                        f"{selected_type} already exists. Please complete or delete it first.",
+                    )
+                    for i, e in enumerate(self.events):
+                        if e["name"] == selected_type:
+                            self.selected_event = i
+                            self.events_list.setCurrentRow(i)
+                    return
+            event_name = selected_type
 
         self.save_event_state()
 
-        event = {"name": selected_type, "start": -1, "end": -1}
+        event = {"name": event_name, "start": -1, "end": -1}
         self.events.append(event)
         self.selected_event = len(self.events) - 1
         self.has_unsaved_changes = True
@@ -1155,6 +1177,10 @@ class VideoAnnotator(QMainWindow):
             rows_to_write = []
 
             for event in self.events:
+                # Skip Accuracy Test events - they'll be saved separately
+                if "Accuracy Test" in event["name"]:
+                    continue
+                    
                 parts = event["name"].split()
                 if len(parts) >= 2:
                     monitor_id = parts[-1]
@@ -1229,6 +1255,10 @@ class VideoAnnotator(QMainWindow):
                 writer.writerows(rows_to_write)
 
             self.has_unsaved_changes = False
+            
+            # Also save marker intervals if any exist
+            self.save_marker_intervals(video_dir)
+            
             QMessageBox.information(self, "Success", f"Events saved to {csv_path}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to save events: {str(e)}")
@@ -1282,6 +1312,55 @@ class VideoAnnotator(QMainWindow):
 
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Error loading events: {e}")
+    
+    def load_marker_intervals(self, marker_path):
+        """Load marker intervals from TSV file and add them as Accuracy Test events"""
+        try:
+            with open(marker_path, 'r') as tsvfile:
+                reader = csv.DictReader(tsvfile, delimiter='\t')
+                
+                for i, row in enumerate(reader):
+                    start_frame = int(row.get('start_frame', 0))
+                    end_frame = int(row.get('end_frame', 0))
+                    
+                    # Create an Accuracy Test event
+                    event = {
+                        "name": f"Accuracy Test {i+1}",
+                        "start": start_frame,
+                        "end": end_frame,
+                    }
+                    self.events.append(event)
+                    
+            self.update_event_list()
+            self.pupil_plot.update_data(self.gaze_data, self.total_frames, self.events)
+            
+        except Exception as e:
+            print(f"Error loading marker intervals: {e}")
+            
+    def save_marker_intervals(self, video_dir):
+        """Save Accuracy Test events to markerInterval.tsv file"""
+        # Find all Accuracy Test events
+        accuracy_events = [event for event in self.events if "Accuracy Test" in event["name"]]
+        
+        if not accuracy_events:
+            return  # No accuracy test events to save
+            
+        marker_path = os.path.join(video_dir, "markerInterval.tsv")
+        
+        try:
+            with open(marker_path, 'w', newline='') as tsvfile:
+                writer = csv.writer(tsvfile, delimiter='\t')
+                
+                # Write header
+                writer.writerow(['start_frame', 'end_frame'])
+                
+                # Write accuracy test intervals
+                for event in accuracy_events:
+                    if event["start"] != -1 and event["end"] != -1:
+                        writer.writerow([event["start"], event["end"]])
+                        
+        except Exception as e:
+            print(f"Error saving marker intervals: {e}")
 
     def update_metadata_ui(self):
         """Update metadata UI fields with current metadata values"""
