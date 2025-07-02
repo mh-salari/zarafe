@@ -109,12 +109,15 @@ class PupilSizePlot(PlotWidget):
                    (not hasattr(self, 'current_gaze_data') or 
                     self.current_gaze_data is not gaze_data))
 
-        if gaze_data is not None and "pup_diam_r" in gaze_data.columns:
+        if gaze_data is not None and "pup_diam_r" in gaze_data.columns and "pup_diam_l" in gaze_data.columns:
             if new_data:
                 self.current_gaze_data = gaze_data
                 
                 self.frame_data = gaze_data["frame_idx"].values
-                self.pupil_data = gaze_data["pup_diam_r"].values
+                pup_diam_r = gaze_data["pup_diam_r"].values
+                pup_diam_l = gaze_data["pup_diam_l"].values
+                
+                self.pupil_data = np.nanmean([pup_diam_r, pup_diam_l], axis=0)
 
                 valid_mask = ~np.isnan(self.pupil_data)
                 self.frame_data = self.frame_data[valid_mask]
