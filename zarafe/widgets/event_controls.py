@@ -1,0 +1,116 @@
+"""Event creation and management controls."""
+
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QCursor
+from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QListWidget, QPushButton, QVBoxLayout
+
+
+class EventControls:
+    """Event management controls component."""
+
+    def __init__(self, parent):
+        self.parent = parent
+
+    def create_event_section(self) -> QVBoxLayout:
+        """Create complete event management section."""
+        event_section = QVBoxLayout()
+
+        # Event creation
+        event_creation = self.create_event_creation()
+        event_section.addLayout(event_creation)
+
+        # Events list
+        event_section.addWidget(QLabel("Events:"))
+        self.parent.events_list = QListWidget()
+        self.parent.events_list.setMaximumHeight(200)
+        self.parent.events_list.itemClicked.connect(self.parent.select_event)
+        self.parent.events_list.itemDoubleClicked.connect(self.parent.jump_to_event)
+        event_section.addWidget(self.parent.events_list)
+
+        # Event controls
+        event_controls = self.create_event_controls()
+        event_section.addLayout(event_controls)
+
+        # Keyboard shortcuts info
+        shortcuts_section = self.create_shortcuts_info()
+        event_section.addLayout(shortcuts_section)
+
+        event_section.addStretch(1)
+
+        # About link
+        about_label = self.create_about_link()
+        event_section.addWidget(about_label)
+
+        return event_section
+
+    def create_event_creation(self) -> QVBoxLayout:
+        """Create event creation controls."""
+        event_creation_layout = QVBoxLayout()
+        event_creation_layout.addWidget(QLabel("Create Event:"))
+
+        self.parent.event_type_combo = QComboBox()
+        self.parent.event_type_combo.addItem("Select event type...")
+        self.parent.event_type_combo.addItems(self.parent.event_manager.event_types)
+        event_creation_layout.addWidget(self.parent.event_type_combo)
+
+        self.parent.create_event_btn = QPushButton("Create Selected Event")
+        self.parent.create_event_btn.clicked.connect(self.parent.create_event)
+        event_creation_layout.addWidget(self.parent.create_event_btn)
+
+        return event_creation_layout
+
+    def create_event_controls(self) -> QVBoxLayout:
+        """Create event management controls."""
+        event_controls = QVBoxLayout()
+
+        button_row1 = QHBoxLayout()
+        self.parent.mark_start_btn = QPushButton("Mark Start")
+        self.parent.mark_start_btn.clicked.connect(self.parent.mark_start)
+        self.parent.mark_end_btn = QPushButton("Mark End")
+        self.parent.mark_end_btn.clicked.connect(self.parent.mark_end)
+        button_row1.addWidget(self.parent.mark_start_btn)
+        button_row1.addWidget(self.parent.mark_end_btn)
+
+        button_row2 = QHBoxLayout()
+        self.parent.delete_event_btn = QPushButton("Delete Event")
+        self.parent.delete_event_btn.clicked.connect(self.parent.delete_event)
+        self.parent.save_events_btn = QPushButton("Save Events")
+        self.parent.save_events_btn.clicked.connect(self.parent.save_events)
+        button_row2.addWidget(self.parent.delete_event_btn)
+        button_row2.addWidget(self.parent.save_events_btn)
+
+        event_controls.addLayout(button_row1)
+        event_controls.addLayout(button_row2)
+
+        return event_controls
+
+    def create_shortcuts_info(self) -> QVBoxLayout:
+        """Create keyboard shortcuts information."""
+        shortcuts_layout = QVBoxLayout()
+
+        shortcuts_label = QLabel("<h4>Keyboard Shortcuts</h4>")
+        shortcuts_label.setStyleSheet("color: white")
+        shortcuts_text = QLabel(
+            "• <b>Space</b>: Play/Pause<br>"
+            "• <b>←/→</b>: Previous/Next Frame<br>"
+            "• <b>Shift+←/→</b>: Jump 10 Frames<br>"
+            "• <b>Ctrl+S</b>: Save Events<br>"
+            "• <b>Ctrl+Z</b>: Undo"
+        )
+        shortcuts_text.setStyleSheet("color: white; font-size: 11px;")
+
+        shortcuts_layout.addWidget(shortcuts_label)
+        shortcuts_layout.addWidget(shortcuts_text)
+
+        return shortcuts_layout
+
+    def create_about_link(self) -> QLabel:
+        """Create about dialog link."""
+        about_label = QLabel("About")
+        about_label.setStyleSheet("color: white; text-decoration: underline;")
+        about_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        about_label.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        about_label.mousePressEvent = lambda event: (
+            self.parent.show_about_dialog() if event.button() == Qt.MouseButton.LeftButton else None
+        )
+        return about_label

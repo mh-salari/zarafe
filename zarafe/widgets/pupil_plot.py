@@ -1,0 +1,122 @@
+"""Pupil size visualization widget."""
+
+import warnings
+
+import numpy as np
+import pandas as pd
+import pyqtgraph as pg
+from pyqtgraph import PlotWidget
+from scipy.ndimage import gaussian_filter1d
+
+
+class PupilSizePlot(PlotWidget):
+    """Custom PyQtGraph widget for pupil size visualization."""
+
+    def __init__(self, parent: PlotWidget | None = None) -> None:
+        super().__init__(parent)
+
+        self.setBackground("#2b2b2b")
+        self.getPlotItem().hideAxis("bottom")
+        left_axis = self.getPlotItem().getAxis("left")
+        left_axis.setTextPen("white")
+        left_axis.enableAutoSIPrefix(False)
+        left_axis.setTickSpacing(major=1, minor=1)
+        self.getPlotItem().showGrid(y=True, alpha=0.1)
+
+        # Disable mouse interactions
+        self.getPlotItem().setMouseEnabled(x=False, y=False)
+        self.getPlotItem().setMenuEnabled(False)
+        self.getPlotItem().hideButtons()
+
+        self.pupil_data = None
+        self.frame_data = None
+        self.smoothed_pupil_data = None
+        self.total_frames = 0
+        self.events = []
+        self.plot_curve = None
+        self.event_regions = []
+
+        self.setup_empty_plot()
+
+    def setup_empty_plot(self) -> None:
+        """Initialize empty plot state."""
+        self.clear()
+        self.getPlotItem().hideAxis("left")
+        self.smoothed_pupil_data = None
+        self.plot_curve = None
+        self.event_regions = []
+
+    def update_data(
+        self, gaze_data: pd.DataFrame, total_frames: int, events: list[dict[str, any]] | None = None
+    ) -> None:
+        """Update pupil size data and events."""
+        self.total_frames = total_frames
+        self.events = events or []
+
+        new_data = gaze_data is not None and (
+            not hasattr(self, "current_gaze_data") or self.current_gaze_data is not gaze_data
+        )
+
+        if gaze_data is not None and "pup_diam_r" in gaze_data.columns and "pup_diam_l" in gaze_data.columns:
+            if new_data:
+                self.current_gaze_data = gaze_data
+                self.frame_data = gaze_data["frame_idx"].to_numpy()
+                pup_diam_r = gaze_data["pup_diam_r"].to_numpy()
+                pup_diam_l = gaze_data["pup_diam_l"].to_numpy()
+
+                if len(pup_diam_r) > 0 and len(pup_diam_l) > 0:
+                    # Stack arrays and calculate mean, suppressing warnings for positions where both are NaN
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore", RuntimeWarning)
+                        self.pupil_data = np.nanmean([pup_diam_r, pup_diam_l], axis=0)
+                else:
+                    self.pupil_data = np.array([])
+
+                valid_mask = ~np.isnan(self.pupil_data)
+                self.frame_data = self.frame_data[valid_mask]
+                self.pupil_data = self.pupil_data[valid_mask]
+
+                self.smoothed_pupil_data = gaussian_filter1d(self.pupil_data, sigma=3)
+
+            self.plot_data()
+        else:
+            self.clear_plot()
+
+    def plot_data(self) -> None:
+        """Render the pupil size plot with events."""
+        self.clear()
+
+        if self.pupil_data is not None and len(self.pupil_data) > 0:
+            self.getPlotItem().showAxis("left")
+            self.event_regions = []
+
+            if self.events:
+                for event in self.events:
+                    if event["start"] != -1 and event["end"] != -1:
+                        color = self._get_event_color(event["name"])
+                        region = pg.LinearRegionItem(
+                            [event["start"], event["end"]], brush=color, pen="transparent", movable=False
+                        )
+                        region.lines[0].hide()
+                        region.lines[1].hide()
+                        self.addItem(region)
+                        self.event_regions.append(region)
+
+            pen = pg.mkPen(color="#8B7AA2", width=2.5)
+            self.plot_curve = self.plot(self.frame_data, self.smoothed_pupil_data, pen=pen, antialias=True)
+
+            self.setXRange(0, self.total_frames, padding=0)
+            self.setYRange(np.min(self.smoothed_pupil_data), np.max(self.smoothed_pupil_data), padding=0.1)
+
+    def clear_plot(self) -> None:
+        """Clear the plot and reset to empty state."""
+        self.setup_empty_plot()
+
+    def _get_event_color(self, event_name: str) -> tuple[int, int, int, int]:
+        """Get RGBA color for event type."""
+        if "View" in event_name:
+            return (25, 100, 123, 50)
+        elif "Accuracy Test" in event_name:
+            return (255, 165, 0, 50)
+        else:
+            return (61, 171, 123, 50)

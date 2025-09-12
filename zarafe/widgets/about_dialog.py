@@ -1,0 +1,56 @@
+"""About dialog for application information."""
+
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel
+
+from ..utils.file_utils import get_resource_path
+
+
+class AboutDialog(QDialog):
+    """Application about dialog."""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("About Zarafe")
+        self.setMinimumWidth(500)
+
+        layout = QVBoxLayout()
+
+        title_label = QLabel("<h2>Video Annotation Tool - Muisti Version</h2>")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label)
+
+        desc_text = QLabel(
+            "<p>Developed by Mohammadhossein Salari with the assistance of Claude 3.7 Sonnet.</p>"
+            "<p>Modified for monitor approach/viewing event annotation.</p>"
+            "<p>For more information and source code, please visit:<br>"
+            "<a href='https://github.com/mh-salari/zarafe'>https://github.com/mh-salari/zarafe</a></p>"
+            "<h3>Acknowledgments</h3>"
+            "<p>This project has received funding from the European Union's Horizon "
+            "Europe research and innovation funding program under grant "
+            "agreement No 101072410, Eyes4ICU project.</p>"
+        )
+        desc_text.setOpenExternalLinks(True)
+        desc_text.setWordWrap(True)
+        desc_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(desc_text)
+
+        image_label = QLabel()
+        image_path = get_resource_path("Funded_by_EU_Eyes4ICU.png")
+
+        if image_path.exists():
+            pixmap = QPixmap(str(image_path))
+            image_label.setPixmap(
+                pixmap.scaled(
+                    400,
+                    100,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            )
+
+        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(image_label)
+
+        self.setLayout(layout)

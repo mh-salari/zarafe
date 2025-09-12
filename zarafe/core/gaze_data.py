@@ -1,0 +1,40 @@
+"""Gaze data loading and processing."""
+
+from pathlib import Path
+import pandas as pd
+
+
+class GazeDataManager:
+    """Manages gaze data loading and frame mapping."""
+
+    def __init__(self):
+        self.gaze_data: pd.DataFrame | None = None
+        self.frame_to_gaze: dict[int, list[tuple[float, float]]] = {}
+
+    def load_gaze_data(self, gaze_path: Path) -> None:
+        """Load gaze data from TSV file and organize by frame index."""
+        self.gaze_data = pd.read_csv(str(gaze_path), sep="\t")
+        self.frame_to_gaze = {}
+
+        for _, row in self.gaze_data.iterrows():
+            frame_idx = int(row["frame_idx"])
+
+            if pd.isna(row["gaze_pos_vid_x"]) or pd.isna(row["gaze_pos_vid_y"]):
+                continue
+
+            x = float(row["gaze_pos_vid_x"])
+            y = float(row["gaze_pos_vid_y"])
+
+            if frame_idx not in self.frame_to_gaze:
+                self.frame_to_gaze[frame_idx] = []
+
+            self.frame_to_gaze[frame_idx].append((x, y))
+
+    def get_gaze_points(self, frame_idx: int) -> list[tuple[float, float]]:
+        """Get gaze points for a specific frame."""
+        return self.frame_to_gaze.get(frame_idx, [])
+
+    def clear(self) -> None:
+        """Clear all gaze data."""
+        self.gaze_data = None
+        self.frame_to_gaze = {}
