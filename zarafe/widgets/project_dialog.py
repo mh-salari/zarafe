@@ -1,19 +1,22 @@
 """Project selection dialog."""
 
 from pathlib import Path
+
+
 from PyQt6.QtCore import Qt, QSettings
 from PyQt6.QtWidgets import (
     QDialog,
-    QVBoxLayout,
-    QLabel,
-    QPushButton,
     QFileDialog,
-    QMessageBox,
+    QLabel,
     QListWidget,
     QListWidgetItem,
+    QMessageBox,
+    QPushButton,
     QTabWidget,
+    QVBoxLayout,
     QWidget,
 )
+
 
 from ..core.config import ProjectConfig
 from ..utils.file_utils import find_video_directories

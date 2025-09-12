@@ -1,29 +1,32 @@
 """New project creation dialog."""
 
-import json
 import csv
-import tempfile
+import json
 import shutil
+import tempfile
 from pathlib import Path
+
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
+    QColorDialog,
     QDialog,
-    QVBoxLayout,
+    QFileDialog,
+    QFormLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
-    QPushButton,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
-    QFormLayout,
-    QGroupBox,
-    QColorDialog,
     QMessageBox,
-    QFileDialog,
+    QPushButton,
     QScrollArea,
+    QVBoxLayout,
     QWidget,
 )
 from PyQt6.QtWidgets import QLabel as DialogLabel
+
 
 from .base_dialog import BaseDialog
 

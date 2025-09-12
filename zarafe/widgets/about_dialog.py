@@ -2,7 +2,8 @@
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel
+from PyQt6.QtWidgets import QDialog, QLabel, QVBoxLayout
+
 
 from ..utils.file_utils import get_resource_path
 

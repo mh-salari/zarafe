@@ -6,7 +6,9 @@ import sys
 # Suppress Qt multimedia debug output - must be set before Qt imports
 os.environ["QT_LOGGING_RULES"] = "qt.multimedia*=false"
 
+
 from PyQt6.QtWidgets import QApplication
+
 
 from zarafe.main_window import VideoAnnotator
 from zarafe.utils.theme import apply_dark_theme

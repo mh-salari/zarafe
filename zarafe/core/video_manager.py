@@ -3,6 +3,7 @@
 import cv2
 from PyQt6.QtCore import QTimer
 
+
 from .audio_manager import AudioManager
 
 

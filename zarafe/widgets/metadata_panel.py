@@ -2,6 +2,7 @@
 
 from PyQt6.QtWidgets import QLabel
 
+
 from ..core.config import ProjectConfig
 
 

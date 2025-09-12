@@ -2,7 +2,8 @@
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QIcon
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
+from PyQt6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+
 
 from ..utils.file_utils import get_resource_path
 

@@ -1,6 +1,9 @@
 "Main application window."
 
 from pathlib import Path
+
+
+import glassesTools.eyetracker
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCloseEvent, QIcon, QKeyEvent
 from PyQt6.QtWidgets import (
@@ -8,6 +11,7 @@ from PyQt6.QtWidgets import (
     QDialog,
     QFileDialog,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -17,10 +21,8 @@ from PyQt6.QtWidgets import (
     QSplitter,
     QVBoxLayout,
     QWidget,
-    QInputDialog,
 )
 
-import glassesTools.eyetracker
 
 from .core.config import ProjectConfig
 from .core.event_manager import EventManager

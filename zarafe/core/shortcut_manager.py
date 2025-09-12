@@ -1,8 +1,10 @@
 """Centralized keyboard shortcut management system."""
 
+from typing import Callable, Dict
+
+
 from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import QWidget
-from typing import Dict, Callable
 
 
 class ShortcutManager:

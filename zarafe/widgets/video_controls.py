@@ -3,6 +3,7 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSlider, QVBoxLayout
 
+
 from ..core.config import ProjectConfig
 from .pupil_plot import PupilSizePlot
 

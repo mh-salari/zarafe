@@ -4,13 +4,13 @@ Handles importing of eye-tracking data using glassesTools.
 
 from pathlib import Path
 
+
+import glassesTools.eyetracker
+import glassesTools.importing
+import pathvalidate
+from glassesTools.recording import Recording
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QMessageBox, QProgressDialog
-
-import pathvalidate
-import glassesTools.importing
-import glassesTools.eyetracker
-from glassesTools.recording import Recording
 
 
 def make_fs_dirname(rec_info: Recording, output_dir: Path = None) -> str:
