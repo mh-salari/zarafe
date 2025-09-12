@@ -74,10 +74,11 @@ class VideoAnnotator(QMainWindow):
             # Load videos from the project directory
             self._load_project_videos()
             # Show project management buttons
-            if hasattr(self, "edit_project_btn"):
-                self.edit_project_btn.show()
             if hasattr(self, "import_videos_btn"):
                 self.import_videos_btn.show()
+            # Enable edit project menu
+            if hasattr(self, "edit_project_action"):
+                self.edit_project_action.setEnabled(True)
         else:
             # Old behavior - show basic UI and wait for directory selection
             self.setup_basic_ui()
@@ -90,7 +91,35 @@ class VideoAnnotator(QMainWindow):
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
 
+        # Setup menu bar
+        self._setup_menu_bar()
+
         self.showMaximized()
+
+    def _setup_menu_bar(self) -> None:
+        """Setup the application menu bar."""
+        menubar = self.menuBar()
+
+        # Project menu
+        project_menu = menubar.addMenu("&Project")
+
+        # Open/Select Project
+        open_project_action = project_menu.addAction("&Open Project...")
+        open_project_action.setShortcut("Ctrl+O")
+        open_project_action.triggered.connect(self._show_project_dialog)
+
+        project_menu.addSeparator()
+
+        # Edit Current Project (disabled until project is loaded)
+        self.edit_project_action = project_menu.addAction("&Edit Current Project...")
+        self.edit_project_action.setShortcut("Ctrl+E")
+        self.edit_project_action.triggered.connect(self._edit_current_project)
+        self.edit_project_action.setEnabled(False)  # Disabled until project loads
+
+        # Help menu
+        help_menu = menubar.addMenu("&Help")
+        about_action = help_menu.addAction("&About")
+        about_action.triggered.connect(self.show_about_dialog)
 
     def setup_basic_ui(self) -> None:
         """Setup basic UI without config-dependent components."""
@@ -136,17 +165,6 @@ class VideoAnnotator(QMainWindow):
         """Create video navigation panel."""
         panel = QWidget()
         layout = QVBoxLayout(panel)
-
-        # Directory selection
-        self.open_dir_btn = QPushButton("Open Directory")
-        self.open_dir_btn.clicked.connect(self.open_directory)
-        layout.addWidget(self.open_dir_btn)
-
-        # Edit project button (only shown when project is loaded)
-        self.edit_project_btn = QPushButton("Edit Project")
-        self.edit_project_btn.clicked.connect(self.edit_project)
-        self.edit_project_btn.hide()  # Hidden until project loads
-        layout.addWidget(self.edit_project_btn)
 
         # Import videos button (only shown when project is loaded)
         self.import_videos_btn = QPushButton("Import Videos")
@@ -250,42 +268,6 @@ class VideoAnnotator(QMainWindow):
             self.video_list.addItem(display_name)
 
     # Directory and video management
-    def open_directory(self) -> None:
-        """Open directory and scan for videos."""
-        dir_path = QFileDialog.getExistingDirectory(self, "Select Directory")
-        if not dir_path:
-            return
-
-        # First, look for zarafe_config.json in the selected directory
-        config_path = Path(dir_path) / "zarafe_config.json"
-        if not config_path.exists():
-            QMessageBox.warning(
-                self,
-                "Config Not Found",
-                f"No zarafe_config.json found in {dir_path}\nPlease ensure the directory contains a valid project configuration.",
-            )
-            return
-
-        try:
-            # Load the project configuration
-            self.config = ProjectConfig(config_path)
-
-            # Initialize config-dependent components
-            self._initialize_config_components()
-
-        except Exception as e:
-            QMessageBox.critical(self, "Config Load Error", f"Failed to load project configuration:\n{e}")
-            return
-
-        self.video_paths.clear()
-        self.video_list.clear()
-
-        video_entries = find_video_directories(dir_path)
-        video_entries.sort(key=natural_sort_key)
-
-        for video_path, display_name in video_entries:
-            self.video_paths.append(video_path)
-            self.video_list.addItem(display_name)
 
     def select_video(self, item: QListWidgetItem) -> None:
         """Select and load video."""
@@ -565,33 +547,46 @@ class VideoAnnotator(QMainWindow):
                 f"Successfully imported {successfully_imported} recordings.",
             )
 
-    def edit_project(self) -> None:
-        """Edit current project configuration."""
-        if not self.config:
+    def _show_project_dialog(self) -> None:
+        """Show project selection dialog."""
+        from .widgets.project_dialog import ProjectDialog
+
+        dialog = ProjectDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            project_info = dialog.get_project_info()
+            if project_info:
+                project_path, project_config = project_info
+                self.project_path = project_path
+                self.config = project_config
+
+                # Initialize config-dependent components
+                self._initialize_config_components()
+                self.setup_ui()
+                self._load_project_videos()
+
+                # Enable edit project menu item
+                self.edit_project_action.setEnabled(True)
+
+    def _edit_current_project(self) -> None:
+        """Edit the currently loaded project."""
+        if not self.project_path:
             return
 
         from .widgets.new_project_dialog import NewProjectDialog
 
-        dialog = NewProjectDialog(self)
+        edit_dialog = NewProjectDialog(self, existing_project_path=self.project_path)
+        if edit_dialog.exec() == QDialog.DialogCode.Accepted:
+            # Get potentially new project path (in case of renaming)
+            new_project_path = edit_dialog.get_project_path()
+            if new_project_path and new_project_path != self.project_path:
+                # Project was renamed - update path
+                self.project_path = new_project_path
 
-        # Pre-populate with existing config
-        dialog.project_name_input.setText(self.config.get_project_name())
-
-        # Add existing events to the list
-        for event_type in self.config.config.get("event_types", []):
-            name = event_type["name"]
-            color = event_type.get("color", [123, 171, 61])
-            applies_to = event_type.get("applies_to")
-            dialog._add_event_to_list(name, color, applies_to)
-
-        dialog.setWindowTitle("Edit Project")
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            # Reload the project with updated config
+            # Reload config and reinitialize
             config_path = self.project_path / "zarafe_config.json"
             if config_path.exists():
                 self.config.load_config(config_path)
-                # Reinitialize managers with new config
-                self.event_manager = EventManager(self.config)
+                self._initialize_config_components()
                 self._load_project_videos()
 
     # Dialogs and utilities

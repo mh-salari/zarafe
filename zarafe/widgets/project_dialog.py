@@ -2,11 +2,9 @@
 
 from pathlib import Path
 from PyQt6.QtCore import Qt, QSettings
-from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
-    QHBoxLayout,
     QLabel,
     QPushButton,
     QFileDialog,
@@ -18,15 +16,16 @@ from PyQt6.QtWidgets import (
 )
 
 from ..core.config import ProjectConfig
-from ..utils.file_utils import find_video_directories, get_resource_path
+from ..utils.file_utils import find_video_directories
+from .base_dialog import BaseDialog
 from .new_project_dialog import NewProjectDialog
 
 
-class ProjectDialog(QDialog):
+class ProjectDialog(BaseDialog):
     """Dialog for selecting and opening eye tracking projects."""
 
     def __init__(self, parent=None):
-        super().__init__(parent)
+        super().__init__(parent, "Zarafe - Select Project", (600, 500), True)
         self.selected_project_path = None
         self.project_config = None
         self.settings = QSettings("Zarafe", "ProjectDialog")
@@ -34,97 +33,10 @@ class ProjectDialog(QDialog):
 
     def setup_ui(self) -> None:
         """Setup the project selection UI."""
-        self.setWindowTitle("Zarafe - Select Project")
-        self.setFixedSize(600, 500)
-        self.setModal(True)
-
-        # Set application icon
-        icon_path = get_resource_path("app_icon.ico")
-        if icon_path.exists():
-            self.setWindowIcon(QIcon(str(icon_path)))
-
-        # Apply dark theme styles
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #2b2b2b;
-                color: white;
-            }
-            QLabel {
-                color: white;
-            }
-            QPushButton {
-                background-color: #3c3c3c;
-                color: white;
-                border: 1px solid #555555;
-                padding: 8px;
-                border-radius: 4px;
-                font-weight: normal;
-            }
-            QPushButton:hover {
-                background-color: #4c4c4c;
-            }
-            QPushButton:pressed {
-                background-color: #1e1e1e;
-            }
-            QPushButton:enabled#openBtn {
-                background-color: #4CAF50;
-                border-color: #4CAF50;
-                font-weight: bold;
-            }
-            QPushButton:hover#openBtn {
-                background-color: #45a049;
-            }
-            QListWidget {
-                background-color: #3c3c3c;
-                border: 1px solid #555555;
-                border-radius: 4px;
-                selection-background-color: #4CAF50;
-                selection-color: white;
-            }
-            QListWidget::item {
-                padding: 8px;
-                border-bottom: 1px solid #555555;
-            }
-            QListWidget::item:hover {
-                background-color: #4c4c4c;
-            }
-            QListWidget::item:selected {
-                background-color: #4CAF50;
-                color: white;
-                font-weight: bold;
-            }
-            QListWidget::item:selected:hover {
-                background-color: #45a049;
-            }
-            QTabWidget::pane {
-                border: 1px solid #555555;
-                background-color: #3c3c3c;
-            }
-            QTabBar::tab {
-                background-color: #2b2b2b;
-                color: white;
-                padding: 8px 16px;
-                margin-right: 2px;
-                border: 1px solid #555555;
-                border-bottom: none;
-            }
-            QTabBar::tab:selected {
-                background-color: #3c3c3c;
-                border-bottom: 1px solid #3c3c3c;
-            }
-        """)
-
-        layout = QVBoxLayout(self)
-        layout.setSpacing(15)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout = self.create_main_layout()
 
         # Title
-        title = QLabel("Select Eye Tracking Project")
-        title_font = QFont()
-        title_font.setPointSize(16)
-        title_font.setBold(True)
-        title.setFont(title_font)
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title = self.create_title_label("Select Eye Tracking Project")
         layout.addWidget(title)
 
         # Tabs for Recent vs Browse
@@ -191,21 +103,16 @@ class ProjectDialog(QDialog):
         layout.addWidget(self.tab_widget)
 
         # Buttons
-        button_layout = QHBoxLayout()
-
-        self.open_btn = QPushButton("Open Project")
-        self.open_btn.setObjectName("openBtn")
-        self.open_btn.clicked.connect(self.open_project)
+        button_layout, buttons = self.create_button_layout(
+            ("Cancel", self.reject),
+            ("Edit Project", self.edit_project),
+            ("Open Project", self.open_project),
+            primary_button_idx=2,
+        )
+        self.edit_btn = buttons[1]
+        self.open_btn = buttons[2]
+        self.edit_btn.setEnabled(False)
         self.open_btn.setEnabled(False)
-        self.open_btn.setMinimumHeight(40)
-
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.clicked.connect(self.reject)
-        cancel_btn.setMinimumHeight(40)
-
-        button_layout.addStretch()
-        button_layout.addWidget(cancel_btn)
-        button_layout.addWidget(self.open_btn)
 
         layout.addLayout(button_layout)
 
@@ -232,6 +139,7 @@ class ProjectDialog(QDialog):
             self.path_label.setStyleSheet(
                 "QLabel { background-color: #3c1e1e; color: #ffaaaa; padding: 10px; border-radius: 4px; border: 1px solid #aa5555; }"
             )
+            self.edit_btn.setEnabled(False)
             self.open_btn.setEnabled(False)
             return
 
@@ -253,6 +161,7 @@ class ProjectDialog(QDialog):
 
             self.selected_project_path = project_path
             self.project_config = config
+            self.edit_btn.setEnabled(True)
             self.open_btn.setEnabled(True)
 
         except Exception as e:
@@ -260,6 +169,7 @@ class ProjectDialog(QDialog):
             self.path_label.setStyleSheet(
                 "QLabel { background-color: #3c1e1e; color: #ffaaaa; padding: 10px; border-radius: 4px; border: 1px solid #aa5555; }"
             )
+            self.edit_btn.setEnabled(False)
             self.open_btn.setEnabled(False)
 
     def load_recent_projects(self) -> None:
@@ -339,6 +249,33 @@ class ProjectDialog(QDialog):
                 self.tab_widget.setCurrentIndex(1)  # Browse tab index
                 # Automatically accept to open the new project
                 self.accept()
+
+    def edit_project(self) -> None:
+        """Edit the selected project configuration."""
+        if self.selected_project_path:
+            original_path = self.selected_project_path
+            edit_dialog = NewProjectDialog(self, existing_project_path=self.selected_project_path)
+            if edit_dialog.exec() == QDialog.DialogCode.Accepted:
+                # Get the potentially new project path (in case of renaming)
+                new_project_path = edit_dialog.get_project_path()
+                if new_project_path and new_project_path != original_path:
+                    # Project was renamed - update selected path and recent projects
+                    self.selected_project_path = new_project_path
+                    # Update recent projects with new path
+                    if hasattr(edit_dialog, "project_config"):
+                        config = edit_dialog.project_config
+                        project_name = config.get("project", {}).get("name", new_project_path.name)
+                    else:
+                        # Fallback to directory name
+                        project_name = new_project_path.name
+                    self.save_recent_project(new_project_path, project_name)
+
+                # Refresh the project validation with current path
+                self.validate_project(self.selected_project_path)
+                # Reload recent projects to show updated list
+                self.load_recent_projects()
+        else:
+            QMessageBox.warning(self, "No Project Selected", "Please select a project to edit.")
 
     def get_project_info(self) -> tuple[Path, ProjectConfig] | None:
         """Get the selected project path and config."""

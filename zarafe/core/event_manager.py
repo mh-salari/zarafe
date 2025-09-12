@@ -237,6 +237,12 @@ class EventManager:
         if not marker_event_name:
             return
 
+        # Check if we already have events with this base name from CSV
+        existing_names = {event["name"] for event in self.events}
+        if marker_event_name in existing_names:
+            # Skip loading marker intervals if we already have this event type from CSV
+            return
+
         try:
             with marker_path.open() as tsvfile:
                 reader = csv.DictReader(tsvfile, delimiter="\t")
