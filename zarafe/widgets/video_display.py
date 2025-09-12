@@ -75,8 +75,10 @@ class VideoDisplay:
 
         for event in self.parent.event_manager.events:
             if event["start"] != -1 and event["end"] != -1 and event["start"] <= current_frame <= event["end"]:
-                color = self.config.get_color(event["name"])
-                return True, color, event
+                rgb_color = self.config.get_color(event["name"])
+                # Convert RGB to BGR for OpenCV
+                bgr_color = (rgb_color[2], rgb_color[1], rgb_color[0])
+                return True, bgr_color, event
 
         return False, None, None
 

@@ -187,10 +187,31 @@ class EventManager:
         try:
             with csv_path.open() as csvfile:
                 reader = csv.DictReader(csvfile)
+                header = reader.fieldnames
 
                 for row in reader:
-                    event_name = row.get("event_name", "")
-                    if not event_name:
+                    # Check if this is the new universal format (has event_name column)
+                    if "event_name" in header:
+                        event_name = row.get("event_name", "")
+                        if not event_name:
+                            continue
+                    # Handle old muisti format (has monitor_id and event_type columns)
+                    elif "monitor_id" in header and "event_type" in header:
+                        event_type = row.get("event_type", "")
+                        monitor_id = row.get("monitor_id", "")
+                        
+                        if event_type == "N.A." or not event_type or not monitor_id:
+                            continue
+                            
+                        # Reconstruct event name from old format
+                        if event_type == "approach":
+                            event_name = f"Approach {monitor_id}"
+                        elif event_type == "view":
+                            event_name = f"View {monitor_id}"
+                        else:
+                            continue
+                    else:
+                        # Unknown format
                         continue
 
                     start_frame = row.get("start_frame", "N.A.")

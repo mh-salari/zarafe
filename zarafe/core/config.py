@@ -52,13 +52,20 @@ class ProjectConfig:
         return self.config.get("targets", []).copy()
 
     def get_color(self, event_name: str) -> tuple[int, int, int]:
-        """Get color for event type based on config color rules."""
-        color_rules = self.config.get("color_rules", [])
+        """Get color for event type based on event definitions."""
         default_color = self.config.get("default_color", [123, 171, 61])
         
-        for rule in color_rules:
-            if rule["pattern"] in event_name:
-                return tuple(rule["color"])
+        # Check event types for direct color assignments
+        for event_type in self.config.get("event_types", []):
+            if "color" in event_type:
+                # For template events, match the expanded name pattern
+                if event_type.get("applies_to") == "targets" and "{target}" in event_type["name"]:
+                    template_base = event_type["name"].replace(" {target}", "")
+                    if event_name.startswith(template_base):
+                        return tuple(event_type["color"])
+                # For direct name match
+                elif event_type["name"] in event_name:
+                    return tuple(event_type["color"])
         
         return tuple(default_color)
 

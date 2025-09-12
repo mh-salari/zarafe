@@ -118,5 +118,5 @@ class PupilSizePlot(PlotWidget):
     def _get_event_color(self, event_name: str) -> tuple[int, int, int, int]:
         """Get RGBA color for event type."""
         rgb_color = self.config.get_color(event_name)
-        # Convert RGB to RGBA with alpha=50 for transparency
+        # Use RGB format directly with alpha=50 for transparency
         return (rgb_color[0], rgb_color[1], rgb_color[2], 50)
