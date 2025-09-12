@@ -17,13 +17,13 @@ class AboutDialog(QDialog):
 
         layout = QVBoxLayout()
 
-        title_label = QLabel("<h2>Video Annotation Tool - Muisti Version</h2>")
+        title_label = QLabel("<h2>Zarafe - Video Annotation Tool</h2>")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
 
         desc_text = QLabel(
             "<p>Developed by Mohammadhossein Salari with the assistance of Claude 3.7 Sonnet.</p>"
-            "<p>Modified for monitor approach/viewing event annotation.</p>"
+            "<p>Video annotation tool for marking timed events in eye tracking research.</p>"
             "<p>For more information and source code, please visit:<br>"
             "<a href='https://github.com/mh-salari/zarafe'>https://github.com/mh-salari/zarafe</a></p>"
             "<h3>Acknowledgments</h3>"

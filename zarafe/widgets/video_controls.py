@@ -3,15 +3,16 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSlider, QVBoxLayout
 
+from ..core.config import ProjectConfig
 from .pupil_plot import PupilSizePlot
 
 
 class VideoControls:
     """Video playback controls component."""
 
-    def __init__(self, parent):
+    def __init__(self, parent, config: ProjectConfig = None):
         self.parent = parent
-        self.setup_controls()
+        self.config = config
 
     def setup_controls(self) -> QVBoxLayout:
         """Create video controls layout."""
@@ -23,9 +24,15 @@ class VideoControls:
         pupil_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         control_layout.addWidget(pupil_label)
 
-        self.parent.pupil_plot = PupilSizePlot()
-        self.parent.pupil_plot.setMaximumHeight(120)
-        control_layout.addWidget(self.parent.pupil_plot)
+        if self.config:
+            self.parent.pupil_plot = PupilSizePlot(self.config)
+        else:
+            # Fallback for when config is not available yet
+            self.parent.pupil_plot = None
+        
+        if self.parent.pupil_plot:
+            self.parent.pupil_plot.setMaximumHeight(120)
+            control_layout.addWidget(self.parent.pupil_plot)
 
         # Timeline slider
         self.parent.timeline_slider = QSlider(Qt.Orientation.Horizontal)

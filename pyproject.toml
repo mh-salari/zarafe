@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "zarafe"
 version = "0.1.0"
-description = "Video annotation tool for marking approach/viewing events for monitors in eye tracking studies"
+description = "Video annotation tool for marking timed events in eye tracking research"
 authors = [
     {name = "Mohammadhossein Salari", email = "mohammadhossein.salari@gmail.com"}
 ]

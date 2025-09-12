@@ -2,12 +2,15 @@
 
 from PyQt6.QtWidgets import QComboBox, QGridLayout, QGroupBox, QLabel, QLineEdit
 
+from ..core.config import ProjectConfig
+
 
 class MetadataPanel:
     """Metadata input panel component."""
 
-    def __init__(self, parent):
+    def __init__(self, parent, config: ProjectConfig):
         self.parent = parent
+        self.config = config
 
     def create_metadata_section(self) -> QGroupBox:
         """Create metadata input section."""
@@ -25,7 +28,7 @@ class MetadataPanel:
         # Condition
         metadata_layout.addWidget(QLabel("Condition:"), 1, 0)
         self.parent.condition_combo = QComboBox()
-        self.parent.condition_combo.addItems(["", "Dark", "Timed Dark", "Normal"])
+        self.parent.condition_combo.addItems(self.config.get_conditions())
         self.parent.condition_combo.currentTextChanged.connect(
             lambda text: self.parent.update_metadata("condition", text)
         )

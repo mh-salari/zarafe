@@ -4,49 +4,34 @@ import csv
 from pathlib import Path
 from typing import Any
 
+from .config import ProjectConfig
 from ..utils.sorting import event_sort_key
 
 
 class EventManager:
     """Manages annotation events and their persistence."""
 
-    def __init__(self):
+    def __init__(self, config: ProjectConfig):
         self.events: list[dict[str, Any]] = []
         self.selected_event: int | None = None
         self.event_history: list[list[dict[str, Any]]] = []
-
-        self.event_types = [
-            "Approach M1",
-            "View M1",
-            "Approach M2",
-            "View M2",
-            "Approach M3",
-            "View M3",
-            "Approach M4",
-            "View M4",
-            "Accuracy Test",
-        ]
+        self.config = config
+        self.event_types = config.get_event_types()
 
     def create_event(self, event_type: str) -> tuple[bool, str]:
         """Create new event of specified type. Returns (success, message)."""
-        if event_type == "Accuracy Test":
-            accuracy_count = sum(1 for event in self.events if "Accuracy Test" in event["name"])
-            event_name = f"Accuracy Test {accuracy_count + 1}"
-        else:
-            # Check for duplicates
-            for i, event in enumerate(self.events):
-                if event["name"] == event_type:
-                    self.selected_event = i
-                    return False, f"{event_type} already exists. Please complete or delete it first."
-            event_name = event_type
+        # Check for duplicates
+        for i, event in enumerate(self.events):
+            if event["name"] == event_type:
+                self.selected_event = i
+                return False, f"{event_type} already exists. Please complete or delete it first."
 
         self.save_state()
-
-        event = {"name": event_name, "start": -1, "end": -1}
+        event = {"name": event_type, "start": -1, "end": -1}
         self.events.append(event)
         self.selected_event = len(self.events) - 1
 
-        return True, f"Created {event_name}"
+        return True, f"Created {event_type}"
 
     def mark_start(self, frame: int) -> tuple[bool, str]:
         """Mark start frame for selected event."""
@@ -157,75 +142,37 @@ class EventManager:
             rows_to_write = []
 
             for event in self.events:
-                if "Accuracy Test" in event["name"]:
+                if self.config.is_marker_interval_event(event["name"]):
                     continue
 
-                parts = event["name"].split()
-                if len(parts) >= 2:
-                    monitor_id = parts[-1]
-                    event_type = "approach" if "Approach" in event["name"] else "view"
-                    annotated_monitors.add(monitor_id)
+                if event["start"] == -1 or event["end"] == -1:
+                    return False, f"Event '{event['name']}' is missing start or end time."
 
-                    if event["start"] == -1 or event["end"] == -1:
-                        return False, f"Event '{event['name']}' is missing start or end time."
+                duration = self._calculate_duration_seconds(event, metadata_manager)
+                duration_str = str(duration) if duration is not None else "N.A."
 
-                    duration = self._calculate_duration_seconds(event, metadata_manager)
-                    duration_str = str(duration) if duration is not None else "N.A."
-
-                    image_name = metadata_manager.get_field(monitor_id)
-
-                    row = [
-                        metadata_manager.get_field("participant_id"),
-                        metadata_manager.get_field("file_name"),
-                        metadata_manager.get_field("condition"),
-                        metadata_manager.get_field("series_title"),
-                        image_name,
-                        monitor_id,
-                        event_type,
-                        event["start"] if event["start"] != -1 else "N.A.",
-                        event["end"] if event["end"] != -1 else "N.A.",
-                        duration_str,
-                    ]
-                    rows_to_write.append(row)
-
-            # Add missing monitors as N.A.
-            all_monitors = {"M1", "M2", "M3", "M4"}
-            missing_monitors = all_monitors - annotated_monitors
-
-            for monitor_id in missing_monitors:
-                image_name = metadata_manager.get_field(monitor_id)
-                na_row = [
+                row = [
                     metadata_manager.get_field("participant_id"),
                     metadata_manager.get_field("file_name"),
-                    metadata_manager.get_field("condition"),
-                    metadata_manager.get_field("series_title"),
-                    image_name,
-                    monitor_id,
-                    "N.A.",
-                    "N.A.",
-                    "N.A.",
-                    "N.A.",
+                    event["name"],
+                    event["start"] if event["start"] != -1 else "N.A.",
+                    event["end"] if event["end"] != -1 else "N.A.",
+                    duration_str,
                 ]
-                rows_to_write.append(na_row)
+                rows_to_write.append(row)
 
-            rows_to_write.sort(key=event_sort_key)
+            rows_to_write.sort(key=lambda x: x[3] if x[3] != "N.A." else float('inf'))
 
             with csv_path.open("w", newline="") as csvfile:
                 writer = csv.writer(csvfile)
-                writer.writerow(
-                    [
-                        "participant_id",
-                        "file_name",
-                        "condition",
-                        "series_title",
-                        "image_name",
-                        "monitor_id",
-                        "event_type",
-                        "start_frame",
-                        "end_frame",
-                        "duration",
-                    ]
-                )
+                writer.writerow([
+                    "participant_id",
+                    "file_name", 
+                    "event_name",
+                    "start_frame",
+                    "end_frame",
+                    "duration",
+                ])
                 writer.writerows(rows_to_write)
 
             return True, f"Events saved to {csv_path}"
@@ -242,17 +189,8 @@ class EventManager:
                 reader = csv.DictReader(csvfile)
 
                 for row in reader:
-                    if row.get("event_type", "") == "N.A.":
-                        continue
-
-                    monitor_id = row.get("monitor_id", "")
-                    event_type = row.get("event_type", "")
-
-                    if event_type == "approach":
-                        event_name = f"Approach {monitor_id}"
-                    elif event_type == "view":
-                        event_name = f"View {monitor_id}"
-                    else:
+                    event_name = row.get("event_name", "")
+                    if not event_name:
                         continue
 
                     start_frame = row.get("start_frame", "N.A.")
@@ -275,9 +213,9 @@ class EventManager:
 
     def save_marker_intervals(self, video_dir: Path) -> None:
         """Save Accuracy Test events to markerInterval.tsv file."""
-        accuracy_events = [event for event in self.events if "Accuracy Test" in event["name"]]
+        marker_events = [event for event in self.events if self.config.is_marker_interval_event(event["name"])]
 
-        if not accuracy_events:
+        if not marker_events:
             return
 
         marker_path = video_dir / "markerInterval.tsv"
@@ -287,7 +225,7 @@ class EventManager:
                 writer = csv.writer(tsvfile, delimiter="\t")
                 writer.writerow(["start_frame", "end_frame"])
 
-                for event in accuracy_events:
+                for event in marker_events:
                     if event["start"] != -1 and event["end"] != -1:
                         writer.writerow([event["start"], event["end"]])
 
@@ -295,7 +233,17 @@ class EventManager:
             print(f"Error saving marker intervals: {e}")
 
     def load_marker_intervals(self, marker_path: Path) -> None:
-        """Load marker intervals from TSV file as Accuracy Test events."""
+        """Load marker intervals from TSV file as marker interval events."""
+        # Find the marker interval event type from config
+        marker_event_name = None
+        for event_type in self.config.config.get("event_types", []):
+            if event_type.get("applies_to") == "glassesValidator":
+                marker_event_name = event_type["name"]
+                break
+        
+        if not marker_event_name:
+            return
+            
         try:
             with marker_path.open() as tsvfile:
                 reader = csv.DictReader(tsvfile, delimiter="\t")
@@ -305,7 +253,7 @@ class EventManager:
                     end_frame = int(row.get("end_frame", 0))
 
                     event = {
-                        "name": f"Accuracy Test {i + 1}",
+                        "name": f"{marker_event_name} {i + 1}",
                         "start": start_frame,
                         "end": end_frame,
                     }

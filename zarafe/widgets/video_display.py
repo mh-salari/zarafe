@@ -5,12 +5,15 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QBrush, QColor, QImage, QPainter, QPen, QPixmap
 from PyQt6.QtWidgets import QLabel, QSizePolicy
 
+from ..core.config import ProjectConfig
+
 
 class VideoDisplay:
     """Video display and rendering component."""
 
-    def __init__(self, parent):
+    def __init__(self, parent, config: ProjectConfig):
         self.parent = parent
+        self.config = config
         self.setup_display()
 
     def setup_display(self) -> QLabel:
@@ -72,13 +75,7 @@ class VideoDisplay:
 
         for event in self.parent.event_manager.events:
             if event["start"] != -1 and event["end"] != -1 and event["start"] <= current_frame <= event["end"]:
-                if "View" in event["name"]:
-                    color = (123, 100, 25)
-                elif "Accuracy Test" in event["name"]:
-                    color = (255, 165, 0)
-                else:
-                    color = (123, 171, 61)
-
+                color = self.config.get_color(event["name"])
                 return True, color, event
 
         return False, None, None
@@ -92,12 +89,16 @@ class VideoDisplay:
         duration = self.parent.video_manager.calculate_duration(event["start"], event["end"])
         duration_str = f"{duration}s" if duration is not None else "N/A"
 
-        if "Accuracy Test" in event["name"]:
+        if self.config.is_marker_interval_event(event["name"]):
             annotation_text = f"{event['name']} ({duration_str})"
         else:
-            event_type = "Approach" if "Approach" in event["name"] else "View"
-            monitor = event["name"].split()[-1]
-            annotation_text = f"{event_type} {monitor} ({duration_str})"
+            event_parts = event["name"].split()
+            if len(event_parts) >= 2:
+                event_type = event_parts[0]
+                target = event_parts[-1]
+                annotation_text = f"{event_type} {target} ({duration_str})"
+            else:
+                annotation_text = f"{event['name']} ({duration_str})"
 
         color_hex = f"#{event_color[2]:02x}{event_color[1]:02x}{event_color[0]:02x}"
 

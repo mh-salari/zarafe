@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from .core.config import ProjectConfig
 from .core.event_manager import EventManager
 from .core.gaze_data import GazeDataManager
 from .core.metadata import MetadataManager
@@ -37,17 +38,18 @@ class VideoAnnotator(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
-        # Initialize managers
+        # Initialize managers (config will be loaded when directory is opened)
+        self.config = None
         self.video_manager = VideoManager()
-        self.event_manager = EventManager()
+        self.event_manager = None
         self.gaze_manager = GazeDataManager()
         self.metadata_manager = MetadataManager()
 
-        # Initialize UI components
-        self.video_display = VideoDisplay(self)
+        # Initialize UI components (will be recreated after config is loaded)
+        self.video_display = None
         self.video_controls = VideoControls(self)
-        self.metadata_panel = MetadataPanel(self)
-        self.event_controls = EventControls(self)
+        self.metadata_panel = None
+        self.event_controls = None
 
         # State
         self.video_paths: list[str] = []
@@ -55,7 +57,7 @@ class VideoAnnotator(QMainWindow):
         self.has_unsaved_changes = False
 
         self._setup_window()
-        self.setup_ui()
+        self.setup_basic_ui()
 
     def _setup_window(self) -> None:
         """Configure main window."""
@@ -66,6 +68,23 @@ class VideoAnnotator(QMainWindow):
             self.setWindowIcon(QIcon(str(icon_path)))
 
         self.showMaximized()
+
+    def setup_basic_ui(self) -> None:
+        """Setup basic UI without config-dependent components."""
+        main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        
+        # Create basic panels
+        left_panel = self._create_left_panel()
+        center_panel = QWidget()  # Will be setup after config loads
+        right_panel = QWidget()   # Will be setup after config loads
+        
+        main_splitter.addWidget(left_panel)
+        main_splitter.addWidget(center_panel)
+        main_splitter.addWidget(right_panel)
+        main_splitter.setSizes([200, 600, 300])
+        
+        self.setCentralWidget(main_splitter)
+        self._setup_shortcuts()
 
     def setup_ui(self) -> None:
         """Initialize the user interface."""
@@ -158,11 +177,54 @@ class VideoAnnotator(QMainWindow):
             shortcut = QShortcut(QKeySequence(key_sequence), self)
             shortcut.activated.connect(callback)
 
+    def _initialize_config_components(self) -> None:
+        """Initialize components that depend on project configuration."""
+        # Initialize managers with config
+        self.event_manager = EventManager(self.config)
+        self.metadata_manager.set_config(self.config)
+        
+        # Initialize UI components with config
+        self.video_display = VideoDisplay(self, self.config)
+        self.video_controls = VideoControls(self, self.config)
+        self.metadata_panel = MetadataPanel(self, self.config)
+        self.event_controls = EventControls(self)
+        
+        # Update window title with project name
+        self.setWindowTitle(f"Zarafe - {self.config.get_project_name()}")
+        
+        # Setup the full UI now that we have config
+        self.setup_ui()
+
     # Directory and video management
     def open_directory(self) -> None:
         """Open directory and scan for videos."""
         dir_path = QFileDialog.getExistingDirectory(self, "Select Directory")
         if not dir_path:
+            return
+
+        # First, look for zarafe_config.json in the selected directory
+        config_path = Path(dir_path) / "zarafe_config.json"
+        if not config_path.exists():
+            QMessageBox.warning(
+                self, 
+                "Config Not Found", 
+                f"No zarafe_config.json found in {dir_path}\nPlease ensure the directory contains a valid project configuration."
+            )
+            return
+
+        try:
+            # Load the project configuration
+            self.config = ProjectConfig(config_path)
+            
+            # Initialize config-dependent components
+            self._initialize_config_components()
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Config Load Error", 
+                f"Failed to load project configuration:\n{e}"
+            )
             return
 
         self.video_paths.clear()
