@@ -35,11 +35,14 @@ from .widgets.video_display import VideoDisplay
 class VideoAnnotator(QMainWindow):
     """Main video annotation application window."""
 
-    def __init__(self) -> None:
+    def __init__(self, project_path: Path = None, project_config: ProjectConfig = None) -> None:
         super().__init__()
 
-        # Initialize managers (config will be loaded when directory is opened)
-        self.config = None
+        # Initialize with project info if provided
+        self.project_path = project_path
+        self.config = project_config
+        
+        # Initialize managers
         self.video_manager = VideoManager()
         self.event_manager = None
         self.gaze_manager = GazeDataManager()
@@ -57,7 +60,16 @@ class VideoAnnotator(QMainWindow):
         self.has_unsaved_changes = False
 
         self._setup_window()
-        self.setup_basic_ui()
+        
+        if self.config:
+            # Initialize config-dependent components immediately
+            self._initialize_config_components()
+            self.setup_ui()
+            # Load videos from the project directory
+            self._load_project_videos()
+        else:
+            # Old behavior - show basic UI and wait for directory selection
+            self.setup_basic_ui()
 
     def _setup_window(self) -> None:
         """Configure main window."""
@@ -194,6 +206,21 @@ class VideoAnnotator(QMainWindow):
         
         # Setup the full UI now that we have config
         self.setup_ui()
+        
+    def _load_project_videos(self) -> None:
+        """Load videos from the selected project directory."""
+        if not self.project_path:
+            return
+            
+        self.video_paths.clear()
+        self.video_list.clear()
+
+        video_entries = find_video_directories(str(self.project_path))
+        video_entries.sort(key=natural_sort_key)
+
+        for video_path, display_name in video_entries:
+            self.video_paths.append(video_path)
+            self.video_list.addItem(display_name)
 
     # Directory and video management
     def open_directory(self) -> None:
