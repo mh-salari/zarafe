@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
 
 
 from .core.config import ProjectConfig
+from .core.configuration_service import ConfigurationService
 from .core.event_manager import EventManager
 from .core.gaze_data import GazeDataManager
 from .core.shortcut_manager import ShortcutManager
@@ -44,6 +45,11 @@ class VideoAnnotator(QMainWindow):
 
     def __init__(self, project_path: Path = None, project_config: ProjectConfig = None) -> None:
         super().__init__()
+
+        # Initialize configuration service
+        self.config_service = ConfigurationService.get_instance()
+        if project_path and project_config:
+            self.config_service.load_project(project_path, project_config)
 
         # Initialize with project info if provided
         self.project_path = project_path
@@ -240,16 +246,16 @@ class VideoAnnotator(QMainWindow):
     def _initialize_config_components(self) -> None:
         """Initialize components that depend on project configuration."""
         # Initialize managers with config
-        self.event_manager = EventManager(self.config)
+        self.event_manager = EventManager()
 
         # Initialize UI components with config
-        self.video_display = VideoDisplay(self, self.config)
-        self.video_controls = VideoControls(self, self.config)
-        self.metadata_panel = MetadataPanel(self, self.config)
+        self.video_display = VideoDisplay(self)
+        self.video_controls = VideoControls(self)
+        self.metadata_panel = MetadataPanel(self)
         self.event_controls = EventControls(self)
 
         # Update window title with project name
-        self.setWindowTitle(f"Zarafe - {self.config.get_project_name()}")
+        self.setWindowTitle(f"Zarafe - {self.config_service.get_project_name()}")
 
         # Setup the full UI now that we have config
         self.setup_ui()

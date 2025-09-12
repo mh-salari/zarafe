@@ -6,15 +6,17 @@ from PyQt6.QtGui import QBrush, QColor, QImage, QPainter, QPen, QPixmap
 from PyQt6.QtWidgets import QLabel, QSizePolicy
 
 
-from ..core.config import ProjectConfig
+from ..core.color_theme_manager import ColorThemeManager
+from ..core.event_type_registry import EventTypeRegistry
 
 
 class VideoDisplay:
     """Video display and rendering component."""
 
-    def __init__(self, parent, config: ProjectConfig):
+    def __init__(self, parent):
         self.parent = parent
-        self.config = config
+        self.color_manager = ColorThemeManager()
+        self.event_registry = EventTypeRegistry()
         self.setup_display()
 
     def setup_display(self) -> QLabel:
@@ -76,7 +78,7 @@ class VideoDisplay:
 
         for event in self.parent.event_manager.events:
             if event["start"] != -1 and event["end"] != -1 and event["start"] <= current_frame <= event["end"]:
-                rgb_color = self.config.get_color(event["name"])
+                rgb_color = self.color_manager.get_color(event["name"])
                 # Convert RGB to BGR for OpenCV
                 bgr_color = (rgb_color[2], rgb_color[1], rgb_color[0])
                 return True, bgr_color, event
@@ -92,7 +94,7 @@ class VideoDisplay:
         duration = self.parent.video_manager.calculate_duration(event["start"], event["end"])
         duration_str = f"{duration}s" if duration is not None else "N/A"
 
-        if self.config.is_marker_interval_event(event["name"]):
+        if self.event_registry.is_marker_interval_event(event["name"]):
             annotation_text = f"{event['name']} ({duration_str})"
         else:
             event_parts = event["name"].split()

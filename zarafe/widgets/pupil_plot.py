@@ -10,15 +10,15 @@ from pyqtgraph import PlotWidget
 from scipy.ndimage import gaussian_filter1d
 
 
-from ..core.config import ProjectConfig
+from ..core.color_theme_manager import ColorThemeManager
 
 
 class PupilSizePlot(PlotWidget):
     """Custom PyQtGraph widget for pupil size visualization."""
 
-    def __init__(self, config: ProjectConfig, parent: PlotWidget | None = None) -> None:
+    def __init__(self, parent: PlotWidget | None = None) -> None:
         super().__init__(parent)
-        self.config = config
+        self.color_manager = ColorThemeManager()
 
         self.setBackground("#2b2b2b")
         self.getPlotItem().hideAxis("bottom")
@@ -119,6 +119,6 @@ class PupilSizePlot(PlotWidget):
 
     def _get_event_color(self, event_name: str) -> tuple[int, int, int, int]:
         """Get RGBA color for event type."""
-        rgb_color = self.config.get_color(event_name)
+        rgb_color = self.color_manager.get_color(event_name)
         # Use RGB format directly with alpha=50 for transparency
         return (rgb_color[0], rgb_color[1], rgb_color[2], 50)

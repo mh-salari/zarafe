@@ -5,18 +5,18 @@ from pathlib import Path
 from typing import Any
 
 
-from .config import ProjectConfig
+from .event_type_registry import EventTypeRegistry
 
 
 class EventManager:
     """Manages annotation events and their persistence."""
 
-    def __init__(self, config: ProjectConfig):
+    def __init__(self):
         self.events: list[dict[str, Any]] = []
         self.selected_event: int | None = None
         self.event_history: list[list[dict[str, Any]]] = []
-        self.config = config
-        self.event_types = config.get_event_types()
+        self.event_registry = EventTypeRegistry()
+        self.event_types = self.event_registry.get_event_types()
 
     def create_event(self, event_type: str) -> tuple[bool, str]:
         """Create new event of specified type. Returns (success, message)."""
@@ -207,7 +207,7 @@ class EventManager:
 
     def save_marker_intervals(self, video_dir: Path) -> None:
         """Save Accuracy Test events to markerInterval.tsv file."""
-        marker_events = [event for event in self.events if self.config.is_marker_interval_event(event["name"])]
+        marker_events = [event for event in self.events if self.event_registry.is_marker_interval_event(event["name"])]
 
         if not marker_events:
             return
@@ -228,13 +228,8 @@ class EventManager:
 
     def load_marker_intervals(self, marker_path: Path) -> None:
         """Load marker intervals from TSV file as marker interval events."""
-        # Find the marker interval event type from config
-        marker_event_name = None
-        for event_type in self.config.config.get("event_types", []):
-            if event_type.get("applies_to") == "glassesValidator":
-                marker_event_name = event_type["name"]
-                break
-
+        # Find the marker interval event type from registry
+        marker_event_name = self.event_registry.get_marker_event_name()
         if not marker_event_name:
             return
 

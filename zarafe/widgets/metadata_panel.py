@@ -2,9 +2,6 @@
 
 from PyQt6.QtWidgets import QLabel
 
-from ..core.config import ProjectConfig
-
-
 # UI Constants
 DEFAULT_FILE_COLOR = "#cccccc"
 PANEL_PADDING = "5px"
@@ -13,9 +10,8 @@ PANEL_PADDING = "5px"
 class MetadataPanel:
     """Metadata input panel component."""
 
-    def __init__(self, parent, config: ProjectConfig):
+    def __init__(self, parent):
         self.parent = parent
-        self.config = config
 
     def create_metadata_section(self) -> QLabel:
         """Create simple file name display."""
