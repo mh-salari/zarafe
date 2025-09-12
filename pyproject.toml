@@ -1,17 +1,17 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "zarafe"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Video annotation tool for marking timed events in eye tracking research"
 authors = [
     {name = "Mohammadhossein Salari", email = "mohammadhossein.salari@gmail.com"}
 ]
 readme = "README.md"
 license = {file = "LICENSE"}
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
     "opencv-python-headless",
     "pandas",
@@ -20,6 +20,7 @@ dependencies = [
     "numpy",
     "scipy",
     "pyqtgraph>=0.13.3",
+    "glassestools==1.23.1",
 ]
 
 [project.optional-dependencies]
@@ -35,6 +36,10 @@ zarafe = "main:main"
 [tool.ruff]
 line-length = 119
 lint.ignore = ["E741"]
+
+[tool.hatch.version]
+source = "vcs"
+tag-regex = "^(?P<version>\\d{2}\\.\\d{2}(?:\\.\\d+)?)$"
 
 [tool.hatch.build.targets.wheel]
 packages = ["."]

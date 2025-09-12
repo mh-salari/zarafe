@@ -1,10 +1,11 @@
-"""Main application window."""
+"Main application window."
 
 from pathlib import Path
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QCloseEvent, QIcon, QKeyEvent, QKeySequence, QShortcut
+from PyQt6.QtGui import QCloseEvent, QIcon, QKeyEvent
 from PyQt6.QtWidgets import (
     QApplication,
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -16,14 +17,18 @@ from PyQt6.QtWidgets import (
     QSplitter,
     QVBoxLayout,
     QWidget,
+    QInputDialog,
 )
+
+import glassesTools.eyetracker
 
 from .core.config import ProjectConfig
 from .core.event_manager import EventManager
 from .core.gaze_data import GazeDataManager
-from .core.metadata import MetadataManager
+from .core.shortcut_manager import ShortcutManager
 from .core.video_manager import VideoManager
 from .utils.file_utils import find_video_directories, get_resource_path
+from .utils.importer import import_recordings
 from .utils.sorting import natural_sort_key
 from .widgets.about_dialog import AboutDialog
 from .widgets.event_controls import EventControls
@@ -41,12 +46,13 @@ class VideoAnnotator(QMainWindow):
         # Initialize with project info if provided
         self.project_path = project_path
         self.config = project_config
-        
+
         # Initialize managers
         self.video_manager = VideoManager()
         self.event_manager = None
         self.gaze_manager = GazeDataManager()
-        self.metadata_manager = MetadataManager()
+        self.shortcut_manager = ShortcutManager(self)
+        self.current_file_name = ""
 
         # Initialize UI components (will be recreated after config is loaded)
         self.video_display = None
@@ -60,13 +66,18 @@ class VideoAnnotator(QMainWindow):
         self.has_unsaved_changes = False
 
         self._setup_window()
-        
+
         if self.config:
             # Initialize config-dependent components immediately
             self._initialize_config_components()
             self.setup_ui()
             # Load videos from the project directory
             self._load_project_videos()
+            # Show project management buttons
+            if hasattr(self, "edit_project_btn"):
+                self.edit_project_btn.show()
+            if hasattr(self, "import_videos_btn"):
+                self.import_videos_btn.show()
         else:
             # Old behavior - show basic UI and wait for directory selection
             self.setup_basic_ui()
@@ -84,19 +95,22 @@ class VideoAnnotator(QMainWindow):
     def setup_basic_ui(self) -> None:
         """Setup basic UI without config-dependent components."""
         main_splitter = QSplitter(Qt.Orientation.Horizontal)
-        
+
         # Create basic panels
         left_panel = self._create_left_panel()
         center_panel = QWidget()  # Will be setup after config loads
-        right_panel = QWidget()   # Will be setup after config loads
-        
+        right_panel = QWidget()  # Will be setup after config loads
+
         main_splitter.addWidget(left_panel)
         main_splitter.addWidget(center_panel)
         main_splitter.addWidget(right_panel)
         main_splitter.setSizes([200, 600, 300])
-        
+
         self.setCentralWidget(main_splitter)
         self._setup_shortcuts()
+
+        # Enable keyboard focus for shortcuts
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
     def setup_ui(self) -> None:
         """Initialize the user interface."""
@@ -115,6 +129,9 @@ class VideoAnnotator(QMainWindow):
         self.setCentralWidget(main_splitter)
         self._setup_shortcuts()
 
+        # Enable keyboard focus for shortcuts
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
     def _create_left_panel(self) -> QWidget:
         """Create video navigation panel."""
         panel = QWidget()
@@ -124,6 +141,18 @@ class VideoAnnotator(QMainWindow):
         self.open_dir_btn = QPushButton("Open Directory")
         self.open_dir_btn.clicked.connect(self.open_directory)
         layout.addWidget(self.open_dir_btn)
+
+        # Edit project button (only shown when project is loaded)
+        self.edit_project_btn = QPushButton("Edit Project")
+        self.edit_project_btn.clicked.connect(self.edit_project)
+        self.edit_project_btn.hide()  # Hidden until project loads
+        layout.addWidget(self.edit_project_btn)
+
+        # Import videos button (only shown when project is loaded)
+        self.import_videos_btn = QPushButton("Import Videos")
+        self.import_videos_btn.clicked.connect(self.import_videos)
+        self.import_videos_btn.hide()  # Hidden until project loads
+        layout.addWidget(self.import_videos_btn)
 
         # Navigation
         nav_layout = QHBoxLayout()
@@ -174,44 +203,42 @@ class VideoAnnotator(QMainWindow):
         return panel
 
     def _setup_shortcuts(self) -> None:
-        """Setup keyboard shortcuts."""
-        shortcuts = [
-            ("Ctrl+Z", self.undo_action),
-            ("Ctrl+S", self.save_events),
-            ("Space", self.toggle_play),
-            ("Right", self.next_frame),
-            ("Left", self.prev_frame),
-            ("Shift+Right", lambda: self.video_manager.jump_frames(10) or self.display_frame()),
-            ("Shift+Left", lambda: self.video_manager.jump_frames(-10) or self.display_frame()),
-        ]
+        """Setup keyboard shortcuts using centralized manager."""
+        shortcut_map = {
+            "Ctrl+Z": self.undo_action,
+            "Ctrl+S": self.save_events,
+            "Space": self.toggle_play,
+            "Right": self.next_frame,
+            "Left": self.prev_frame,
+            "Shift+Right": self.jump_forward_10,
+            "Shift+Left": self.jump_backward_10,
+            "M": self.toggle_mute,
+        }
 
-        for key_sequence, callback in shortcuts:
-            shortcut = QShortcut(QKeySequence(key_sequence), self)
-            shortcut.activated.connect(callback)
+        self.shortcut_manager.register_shortcuts(shortcut_map)
 
     def _initialize_config_components(self) -> None:
         """Initialize components that depend on project configuration."""
         # Initialize managers with config
         self.event_manager = EventManager(self.config)
-        self.metadata_manager.set_config(self.config)
-        
+
         # Initialize UI components with config
         self.video_display = VideoDisplay(self, self.config)
         self.video_controls = VideoControls(self, self.config)
         self.metadata_panel = MetadataPanel(self, self.config)
         self.event_controls = EventControls(self)
-        
+
         # Update window title with project name
         self.setWindowTitle(f"Zarafe - {self.config.get_project_name()}")
-        
+
         # Setup the full UI now that we have config
         self.setup_ui()
-        
+
     def _load_project_videos(self) -> None:
         """Load videos from the selected project directory."""
         if not self.project_path:
             return
-            
+
         self.video_paths.clear()
         self.video_list.clear()
 
@@ -233,25 +260,21 @@ class VideoAnnotator(QMainWindow):
         config_path = Path(dir_path) / "zarafe_config.json"
         if not config_path.exists():
             QMessageBox.warning(
-                self, 
-                "Config Not Found", 
-                f"No zarafe_config.json found in {dir_path}\nPlease ensure the directory contains a valid project configuration."
+                self,
+                "Config Not Found",
+                f"No zarafe_config.json found in {dir_path}\nPlease ensure the directory contains a valid project configuration.",
             )
             return
 
         try:
             # Load the project configuration
             self.config = ProjectConfig(config_path)
-            
+
             # Initialize config-dependent components
             self._initialize_config_components()
-            
+
         except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Config Load Error", 
-                f"Failed to load project configuration:\n{e}"
-            )
+            QMessageBox.critical(self, "Config Load Error", f"Failed to load project configuration:\n{e}")
             return
 
         self.video_paths.clear()
@@ -316,13 +339,13 @@ class VideoAnnotator(QMainWindow):
         self.play_btn.setText("Play")
 
     def _load_associated_data(self, video_dir: Path) -> None:
-        """Load gaze data, metadata, and events."""
-        self.metadata_manager.set_file_name(video_dir.name)
+        """Load gaze data and events."""
+        self.current_file_name = video_dir.name
+        self.file_info_label.setText(self.current_file_name)
 
         # Load each data type if file exists
         data_files = [
             ("gazeData.tsv", self.gaze_manager.load_gaze_data),
-            ("metadata.csv", lambda p: (self.metadata_manager.load_from_csv(p), self.update_metadata_ui())),
             ("events.csv", lambda p: self.event_manager.load_from_csv(p) and self.event_manager.save_state()),
             ("markerInterval.tsv", self.event_manager.load_marker_intervals),
         ]
@@ -442,6 +465,21 @@ class VideoAnnotator(QMainWindow):
         self.update_event_list()
         self.update_pupil_plot()
 
+    def jump_forward_10(self) -> None:
+        """Jump forward 10 frames."""
+        self.video_manager.jump_frames(10)
+        self.display_frame()
+
+    def jump_backward_10(self) -> None:
+        """Jump backward 10 frames."""
+        self.video_manager.jump_frames(-10)
+        self.display_frame()
+
+    def toggle_mute(self) -> None:
+        """Toggle audio mute/unmute."""
+        is_muted = self.video_manager.audio_manager.toggle_mute()
+        self.mute_btn.setText("🔇" if is_muted else "🔊")
+
     def undo_action(self) -> None:
         """Undo last action."""
         success, _ = self.event_manager.undo()
@@ -458,7 +496,7 @@ class VideoAnnotator(QMainWindow):
         video_dir = Path(self.video_paths[self.current_video_index]).parent
         csv_path = video_dir / "events.csv"
 
-        success, message = self.event_manager.save_to_csv(csv_path, self.metadata_manager)
+        success, message = self.event_manager.save_to_csv(csv_path, self.current_file_name)
         if success:
             self.has_unsaved_changes = False
             self.event_manager.save_marker_intervals(video_dir)
@@ -482,26 +520,79 @@ class VideoAnnotator(QMainWindow):
             self.gaze_manager.gaze_data, self.video_manager.total_frames, self.event_manager.events
         )
 
-    # Metadata management
-    def update_metadata(self, field: str, value: str) -> None:
-        """Update metadata field."""
-        self.metadata_manager.update_field(field, value)
-        if self.video_manager.cap:
-            self.has_unsaved_changes = True
+    def import_videos(self) -> None:
+        """Import eye tracking recordings."""
+        if not self.project_path:
+            QMessageBox.warning(self, "No Project", "Please open a project first.")
+            return
 
-    def update_metadata_ui(self) -> None:
-        """Update metadata UI."""
-        self.participant_id_input.blockSignals(True)
-        self.condition_combo.blockSignals(True)
-        self.series_title_input.blockSignals(True)
+        # Create a dialog to select the eye tracker
+        device_names = [d.value for d in glassesTools.eyetracker.EyeTracker]
+        device_name, ok = QInputDialog.getItem(
+            self,
+            "Select Eye Tracker",
+            "Select the eye tracker model:",
+            device_names,
+            0,
+            False,
+        )
 
-        self.participant_id_input.setText(self.metadata_manager.get_field("participant_id"))
-        self.condition_combo.setCurrentText(self.metadata_manager.get_field("condition"))
-        self.series_title_input.setText(self.metadata_manager.get_field("series_title"))
+        if not ok or not device_name:
+            return
 
-        self.participant_id_input.blockSignals(False)
-        self.condition_combo.blockSignals(False)
-        self.series_title_input.blockSignals(False)
+        selected_device = glassesTools.eyetracker.EyeTracker(device_name)
+
+        source_dir_str = QFileDialog.getExistingDirectory(
+            self, "Select Eye Tracker Recording Directory", str(Path.home())
+        )
+        if not source_dir_str:
+            return
+
+        source_dir = Path(source_dir_str)
+
+        successfully_imported = import_recordings(
+            source_dir=source_dir,
+            project_path=self.project_path,
+            device=selected_device,
+            parent_widget=self,
+        )
+
+        if successfully_imported > 0:
+            self._load_project_videos()
+            QMessageBox.information(
+                self,
+                "Import Complete",
+                f"Successfully imported {successfully_imported} recordings.",
+            )
+
+    def edit_project(self) -> None:
+        """Edit current project configuration."""
+        if not self.config:
+            return
+
+        from .widgets.new_project_dialog import NewProjectDialog
+
+        dialog = NewProjectDialog(self)
+
+        # Pre-populate with existing config
+        dialog.project_name_input.setText(self.config.get_project_name())
+
+        # Add existing events to the list
+        for event_type in self.config.config.get("event_types", []):
+            name = event_type["name"]
+            color = event_type.get("color", [123, 171, 61])
+            applies_to = event_type.get("applies_to")
+            dialog._add_event_to_list(name, color, applies_to)
+
+        dialog.setWindowTitle("Edit Project")
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Reload the project with updated config
+            config_path = self.project_path / "zarafe_config.json"
+            if config_path.exists():
+                self.config.load_config(config_path)
+                # Reinitialize managers with new config
+                self.event_manager = EventManager(self.config)
+                self._load_project_videos()
 
     # Dialogs and utilities
     def show_about_dialog(self) -> None:
@@ -528,7 +619,8 @@ class VideoAnnotator(QMainWindow):
 
     # Event handlers
     def keyPressEvent(self, event: QKeyEvent) -> None:
-        """Handle key events."""
+        """Handle key events for shortcuts."""
+        # Let QShortcut handle all shortcuts, just pass through
         super().keyPressEvent(event)
 
     def closeEvent(self, event: QCloseEvent) -> None:

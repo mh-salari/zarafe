@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 from .config import ProjectConfig
-from ..utils.sorting import event_sort_key
 
 
 class EventManager:
@@ -132,47 +131,41 @@ class EventManager:
             return f"{event['name']}: Start={start_str}, End={end_str}"
         return ""
 
-    def save_to_csv(self, csv_path: Path, metadata_manager) -> tuple[bool, str]:
+    def save_to_csv(self, csv_path: Path, file_name: str) -> tuple[bool, str]:
         """Save events to CSV file."""
         try:
-            if not metadata_manager.is_complete():
-                return False, "Please fill in all metadata fields before saving."
-
-            annotated_monitors = set()
             rows_to_write = []
 
             for event in self.events:
-                if self.config.is_marker_interval_event(event["name"]):
-                    continue
-
                 if event["start"] == -1 or event["end"] == -1:
                     return False, f"Event '{event['name']}' is missing start or end time."
 
-                duration = self._calculate_duration_seconds(event, metadata_manager)
-                duration_str = str(duration) if duration is not None else "N.A."
+                # Simple duration calculation in frames
+                duration_frames = event["end"] - event["start"] + 1
 
                 row = [
-                    metadata_manager.get_field("participant_id"),
-                    metadata_manager.get_field("file_name"),
+                    file_name,
                     event["name"],
-                    event["start"] if event["start"] != -1 else "N.A.",
-                    event["end"] if event["end"] != -1 else "N.A.",
-                    duration_str,
+                    event["start"],
+                    event["end"],
+                    duration_frames,
                 ]
                 rows_to_write.append(row)
 
-            rows_to_write.sort(key=lambda x: x[3] if x[3] != "N.A." else float('inf'))
+            # Sort by start frame
+            rows_to_write.sort(key=lambda x: x[2])
 
             with csv_path.open("w", newline="") as csvfile:
                 writer = csv.writer(csvfile)
-                writer.writerow([
-                    "participant_id",
-                    "file_name", 
-                    "event_name",
-                    "start_frame",
-                    "end_frame",
-                    "duration",
-                ])
+                writer.writerow(
+                    [
+                        "file_name",
+                        "event_name",
+                        "start_frame",
+                        "end_frame",
+                        "duration_frames",
+                    ]
+                )
                 writer.writerows(rows_to_write)
 
             return True, f"Events saved to {csv_path}"
@@ -187,31 +180,10 @@ class EventManager:
         try:
             with csv_path.open() as csvfile:
                 reader = csv.DictReader(csvfile)
-                header = reader.fieldnames
 
                 for row in reader:
-                    # Check if this is the new universal format (has event_name column)
-                    if "event_name" in header:
-                        event_name = row.get("event_name", "")
-                        if not event_name:
-                            continue
-                    # Handle old muisti format (has monitor_id and event_type columns)
-                    elif "monitor_id" in header and "event_type" in header:
-                        event_type = row.get("event_type", "")
-                        monitor_id = row.get("monitor_id", "")
-                        
-                        if event_type == "N.A." or not event_type or not monitor_id:
-                            continue
-                            
-                        # Reconstruct event name from old format
-                        if event_type == "approach":
-                            event_name = f"Approach {monitor_id}"
-                        elif event_type == "view":
-                            event_name = f"View {monitor_id}"
-                        else:
-                            continue
-                    else:
-                        # Unknown format
+                    event_name = row.get("event_name", "")
+                    if not event_name:
                         continue
 
                     start_frame = row.get("start_frame", "N.A.")
@@ -261,10 +233,10 @@ class EventManager:
             if event_type.get("applies_to") == "glassesValidator":
                 marker_event_name = event_type["name"]
                 break
-        
+
         if not marker_event_name:
             return
-            
+
         try:
             with marker_path.open() as tsvfile:
                 reader = csv.DictReader(tsvfile, delimiter="\t")

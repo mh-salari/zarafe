@@ -142,6 +142,10 @@ class VideoDisplay:
         label_size = self.parent.video_label.size()
         pixmap_size = self.parent.video_label.pixmap().size()
 
+        # Guard against division by zero
+        if pixmap_size.width() == 0 or pixmap_size.height() == 0:
+            return
+
         # Calculate scaling and position
         scale_x = label_size.width() / pixmap_size.width()
         scale_y = label_size.height() / pixmap_size.height()

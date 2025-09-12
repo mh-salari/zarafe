@@ -29,7 +29,7 @@ class VideoControls:
         else:
             # Fallback for when config is not available yet
             self.parent.pupil_plot = None
-        
+
         if self.parent.pupil_plot:
             self.parent.pupil_plot.setMaximumHeight(120)
             control_layout.addWidget(self.parent.pupil_plot)
@@ -57,11 +57,18 @@ class VideoControls:
         self.parent.prev_frame_btn.clicked.connect(self.parent.prev_frame)
         self.parent.next_frame_btn = QPushButton("Next Frame →")
         self.parent.next_frame_btn.clicked.connect(self.parent.next_frame)
+
+        # Mute button
+        self.parent.mute_btn = QPushButton("🔊")
+        self.parent.mute_btn.clicked.connect(self.parent.toggle_mute)
+        self.parent.mute_btn.setMaximumWidth(40)
+
         self.parent.frame_info = QLabel("Frame: 0 / 0")
 
         playback_layout.addWidget(self.parent.play_btn)
         playback_layout.addWidget(self.parent.prev_frame_btn)
         playback_layout.addWidget(self.parent.next_frame_btn)
+        playback_layout.addWidget(self.parent.mute_btn)
         playback_layout.addStretch()
         playback_layout.addWidget(self.parent.frame_info)
 

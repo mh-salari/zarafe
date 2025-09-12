@@ -3,6 +3,8 @@
 import cv2
 from PyQt6.QtCore import QTimer
 
+from .audio_manager import AudioManager
+
 
 class VideoManager:
     """Manages video loading, playback, and frame navigation."""
@@ -16,6 +18,8 @@ class VideoManager:
         self.last_frame_read = -1
 
         self.timer = QTimer()
+        self.frame_callback = None
+        self.audio_manager = AudioManager()
 
     def load_video(self, video_path: str) -> bool:
         """Load a video file."""
@@ -33,6 +37,9 @@ class VideoManager:
         self.current_frame = 0
         self.last_frame_read = -1
         self.playing = False
+
+        # Load audio for this video
+        self.audio_manager.load_video(video_path)
 
         return True
 
@@ -76,6 +83,11 @@ class VideoManager:
         self.current_frame = max(0, min(frame_number, self.total_frames - 1))
         self.last_frame_read = -1
 
+        # Sync audio to current frame position
+        if self.fps > 0:
+            position_ms = int((self.current_frame / self.fps) * 1000)
+            self.audio_manager.set_position(position_ms)
+
     def toggle_playback(self) -> bool:
         """Toggle play/pause state."""
         self.playing = not self.playing
@@ -84,14 +96,26 @@ class VideoManager:
     def start_playback(self, frame_callback) -> None:
         """Start playback with callback."""
         if self.playing and self.cap is not None:
+            # Only connect if not already connected or callback changed
+            if self.frame_callback != frame_callback:
+                if self.frame_callback is not None:
+                    self.timer.timeout.disconnect()
+                self.timer.timeout.connect(frame_callback)
+                self.frame_callback = frame_callback
+
             interval = int(1000 / self.fps) if self.fps > 0 else 33
-            self.timer.timeout.connect(frame_callback)
             self.timer.start(interval)
+
+            # Start audio playback
+            self.audio_manager.play()
 
     def stop_playback(self) -> None:
         """Stop playback."""
         self.timer.stop()
         self.playing = False
+
+        # Pause audio playback
+        self.audio_manager.pause()
 
     def calculate_duration(self, start_frame: int, end_frame: int) -> float | None:
         """Calculate duration in seconds from frame numbers."""
@@ -105,3 +129,6 @@ class VideoManager:
             self.cap.release()
             self.cap = None
         self.timer.stop()
+
+        # Clean up audio resources
+        self.audio_manager.cleanup()

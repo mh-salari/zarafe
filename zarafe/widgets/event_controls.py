@@ -94,6 +94,7 @@ class EventControls:
             "• <b>Space</b>: Play/Pause<br>"
             "• <b>←/→</b>: Previous/Next Frame<br>"
             "• <b>Shift+←/→</b>: Jump 10 Frames<br>"
+            "• <b>M</b>: Mute/Unmute Audio<br>"
             "• <b>Ctrl+S</b>: Save Events<br>"
             "• <b>Ctrl+Z</b>: Undo"
         )
