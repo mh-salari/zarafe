@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "zarafe"
+version = "0.1.0"
+description = "Video annotation tool for marking approach/viewing events for monitors in eye tracking studies"
+authors = [
+    {name = "Mohammadhossein Salari", email = "mohammadhossein.salari@gmail.com"}
+]
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.8"
+dependencies = [
+    "opencv-python-headless",
+    "pandas",
+    "PyQt6",
+    "matplotlib",
+    "numpy",
+    "scipy",
+    "pyqtgraph>=0.13.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "flake8",
+]
+
+[project.scripts]
+zarafe = "main:main"
+
+[tool.ruff]
+line-length = 119
+lint.ignore = ["E741"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
