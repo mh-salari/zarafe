@@ -381,8 +381,22 @@ class VideoAnnotator(QMainWindow):
     def _edit_current_project(self) -> None:
         """Edit current project using project controller."""
         if self.project_controller.edit_current_project(self):
-            self._initialize_config_components()
-            self._load_project_videos()
+            # Reload the entire project to refresh all UI components
+            self._reload_current_project()
+
+    def _reload_current_project(self) -> None:
+        """Reload the current project to refresh all UI components after changes."""
+        # Update the configuration service with the potentially updated project path
+        updated_project_path = self.project_controller.project_path
+        if updated_project_path:
+            # Update the project path in the configuration service
+            if self.config_service._config:
+                self.config_service._project_path = updated_project_path
+
+        # Reinitialize components with updated configuration
+        self._initialize_config_components()
+        self._setup_full_ui()
+        self._load_project_videos()
 
     # Dialogs and utilities
     def show_about_dialog(self) -> None:

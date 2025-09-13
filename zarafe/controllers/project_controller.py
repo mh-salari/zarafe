@@ -45,6 +45,11 @@ class ProjectController:
 
         edit_dialog = NewProjectDialog(parent_window, existing_project_path=self.project_path)
         if edit_dialog.exec() == QDialog.DialogCode.Accepted:
+            # Get the updated project path (in case project was renamed)
+            updated_project_path = edit_dialog.get_project_path()
+            if updated_project_path:
+                self.project_path = updated_project_path
+            
             config_path = self.project_path / "zarafe_config.json"
             self.config_service.reload_config(config_path)
             return True
