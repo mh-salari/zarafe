@@ -664,7 +664,7 @@ class NewProjectDialog(BaseDialog):
         """Update a single CSV file with renames, deletions, and additions."""
         try:
             # Read the CSV file
-            with csv_file.open("r", newline="") as infile:
+            with csv_file.open("r", encoding="utf-8", newline="") as infile:
                 reader = csv.DictReader(infile)
                 rows = list(reader)
                 fieldnames = reader.fieldnames
