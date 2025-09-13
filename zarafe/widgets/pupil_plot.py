@@ -2,16 +2,13 @@
 
 import warnings
 
-
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 from pyqtgraph import PlotWidget
 from scipy.ndimage import gaussian_filter1d
 
-
 from ..core.color_theme_manager import ColorThemeManager
-
 
 # Plot styling constants
 BACKGROUND_COLOR = "#2b2b2b"
@@ -29,6 +26,7 @@ class PupilSizePlot(PlotWidget):
     """Custom PyQtGraph widget for pupil size visualization."""
 
     def __init__(self, parent: PlotWidget | None = None) -> None:
+        """Initialize the pupil size plot widget."""
         super().__init__(parent)
         self.color_manager = ColorThemeManager()
 
@@ -57,6 +55,7 @@ class PupilSizePlot(PlotWidget):
         self.setup_empty_plot()
 
     def setup_empty_plot(self) -> None:
+        """Setup empty plot state."""
         self.clear()
         self.getPlotItem().hideAxis("left")
         self.smoothed_pupil_data = None
@@ -66,6 +65,7 @@ class PupilSizePlot(PlotWidget):
     def update_data(
         self, gaze_data: pd.DataFrame, total_frames: int, events: list[dict[str, any]] | None = None
     ) -> None:
+        """Update plot with new gaze data."""
         self.total_frames = total_frames
         self.events = events or []
 
@@ -102,6 +102,7 @@ class PupilSizePlot(PlotWidget):
             self.clear_plot()
 
     def plot_data(self) -> None:
+        """Plot pupil data with events overlay."""
         self.clear()
 
         if self.pupil_data is not None and len(self.pupil_data) > 0:
@@ -127,6 +128,7 @@ class PupilSizePlot(PlotWidget):
             self.setYRange(np.min(self.smoothed_pupil_data), np.max(self.smoothed_pupil_data), padding=Y_RANGE_PADDING)
 
     def clear_plot(self) -> None:
+        """Clear the plot."""
         self.setup_empty_plot()
 
     def _get_event_color(self, event_name: str) -> tuple[int, int, int, int]:

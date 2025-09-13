@@ -4,9 +4,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QDialog, QLabel, QVBoxLayout
 
-
 from ..utils.file_utils import get_resource_path
-
 
 # Dialog constants
 DIALOG_MIN_WIDTH = 500
@@ -17,7 +15,8 @@ IMAGE_SCALE_HEIGHT = 100
 class AboutDialog(QDialog):
     """Application about dialog."""
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: object = None) -> None:
+        """Initialize the about dialog."""
         super().__init__(parent)
         self.setWindowTitle("About Zarafe")
         self.setMinimumWidth(DIALOG_MIN_WIDTH)

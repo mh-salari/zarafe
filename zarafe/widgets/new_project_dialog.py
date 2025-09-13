@@ -6,7 +6,6 @@ import shutil
 import tempfile
 from pathlib import Path
 
-
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QColorDialog,
@@ -27,14 +26,14 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtWidgets import QLabel as DialogLabel
 
-
 from .base_dialog import BaseDialog
 
 
 class NewProjectDialog(BaseDialog):
     """Dialog for creating new eye tracking projects."""
 
-    def __init__(self, parent=None, existing_project_path: Path = None):
+    def __init__(self, parent: object = None, existing_project_path: Path | None = None) -> None:
+        """Initialize the new project dialog."""
         # Set existing_project_path FIRST before calling super().__init__
         self.existing_project_path = existing_project_path
 
@@ -48,7 +47,7 @@ class NewProjectDialog(BaseDialog):
         if self.existing_project_path:
             self._load_existing_project()
 
-    def setup_ui(self) -> None:
+    def setup_ui(self) -> None:  # noqa: PLR0914
         """Setup the new project creation UI."""
         layout = self.create_main_layout()
 
@@ -135,7 +134,7 @@ class NewProjectDialog(BaseDialog):
         # Use the same edit dialog but with empty initial values
         self._edit_or_add_event()
 
-    def _add_event_to_list(self, name: str, rgb: list, applies_to: str = None) -> None:
+    def _add_event_to_list(self, name: str, rgb: list, applies_to: str | None = None) -> None:
         """Add event to list with colored box and action buttons."""
         # Create custom widget for the list item
         item_widget = QWidget()
@@ -149,7 +148,7 @@ class NewProjectDialog(BaseDialog):
             f"background-color: rgb({rgb[0]}, {rgb[1]}, {rgb[2]}); border: 2px solid #ffffff; border-radius: 4px;"
         )
         color_box.setCursor(Qt.CursorShape.PointingHandCursor)
-        color_box.mousePressEvent = lambda event: self._edit_or_add_event(item, name_label, color_box)
+        color_box.mousePressEvent = lambda _: self._edit_or_add_event(item, name_label, color_box)
         item_layout.addWidget(color_box)
 
         # Event name
@@ -175,14 +174,14 @@ class NewProjectDialog(BaseDialog):
         edit_label = QLabel("✏️ edit")
         edit_label.setStyleSheet("color: #4CAF50; font-size: 12px; padding: 4px 8px; background-color: transparent;")
         edit_label.setCursor(Qt.CursorShape.PointingHandCursor)
-        edit_label.mousePressEvent = lambda event: self._edit_or_add_event(item, name_label, color_box)
+        edit_label.mousePressEvent = lambda _: self._edit_or_add_event(item, name_label, color_box)
         item_layout.addWidget(edit_label)
 
         # Delete action
         delete_label = QLabel("🗑️ delete")
         delete_label.setStyleSheet("color: #f44336; font-size: 12px; padding: 4px 8px; background-color: transparent;")
         delete_label.setCursor(Qt.CursorShape.PointingHandCursor)
-        delete_label.mousePressEvent = lambda event: self._delete_event_item(item)
+        delete_label.mousePressEvent = lambda _: self._delete_event_item(item)
         item_layout.addWidget(delete_label)
 
         # Create list item - let CSS handle the styling
@@ -197,7 +196,7 @@ class NewProjectDialog(BaseDialog):
         self.events_list.addItem(item)
         self.events_list.setItemWidget(item, item_widget)
 
-    def _edit_or_add_event(
+    def _edit_or_add_event(  # noqa: PLR0914
         self, item: QListWidgetItem = None, name_label: QLabel = None, color_box: QLabel = None
     ) -> None:
         """Single dialog for both editing existing events and adding new ones."""
@@ -301,45 +300,72 @@ class NewProjectDialog(BaseDialog):
 
     def save_project(self) -> None:
         """Save or update the project configuration."""
+        if not self._validate_inputs():
+            return
+
+        project_path = self._get_or_create_project_path()
+        if not project_path:
+            return
+
+        config = self._build_project_config()
+        if not self._save_config_file(project_path, config):
+            return
+
+        self._handle_post_save_actions(project_path, config)
+
+    def _validate_inputs(self) -> bool:
+        """Validate user inputs before saving."""
         if not self.project_name_input.text().strip():
             QMessageBox.warning(self, "Missing Information", "Please enter a project name.")
-            return
+            return False
 
         if self.events_list.count() == 0:
             QMessageBox.warning(self, "Missing Information", "Please add at least one event type.")
-            return
+            return False
 
-        # If editing, use existing project path
+        return True
+
+    def _get_or_create_project_path(self) -> Path | None:
+        """Get project path for editing or create new project directory."""
         if self.existing_project_path:
-            project_path = self.existing_project_path
-            # Handle project renaming
-            old_project_name = project_path.name
-            new_project_name = self.project_name_input.text().strip().replace(" ", "_").replace("/", "_")
-            if old_project_name != new_project_name:
-                new_project_path = project_path.parent / new_project_name
-                try:
-                    project_path.rename(new_project_path)
-                    project_path = new_project_path
-                except Exception as e:
-                    QMessageBox.warning(self, "Rename Error", f"Could not rename project directory:\n{str(e)}")
-        else:
-            # Ask where to create the project
-            parent_dir = QFileDialog.getExistingDirectory(self, "Select Parent Directory for New Project")
-            if not parent_dir:
-                return
+            return self._handle_existing_project_path()
+        return self._create_new_project_path()
 
-            # Create project directory
-            project_name = self.project_name_input.text().strip()
-            safe_project_name = project_name.replace(" ", "_").replace("/", "_")
-            project_path = Path(parent_dir) / safe_project_name
+    def _handle_existing_project_path(self) -> Path:
+        """Handle project path for editing, including potential renaming."""
+        project_path = self.existing_project_path
+        old_project_name = project_path.name
+        new_project_name = self.project_name_input.text().strip().replace(" ", "_").replace("/", "_")
 
+        if old_project_name != new_project_name:
+            new_project_path = project_path.parent / new_project_name
             try:
-                project_path.mkdir(exist_ok=True)
+                project_path.rename(new_project_path)
+                project_path = new_project_path
             except Exception as e:
-                QMessageBox.critical(self, "Directory Error", f"Failed to create project directory:\n{str(e)}")
-                return
+                QMessageBox.warning(self, "Rename Error", f"Could not rename project directory:\n{e!s}")
 
-        # Build configuration
+        return project_path
+
+    def _create_new_project_path(self) -> Path | None:
+        """Create new project directory."""
+        parent_dir = QFileDialog.getExistingDirectory(self, "Select Parent Directory for New Project")
+        if not parent_dir:
+            return None
+
+        project_name = self.project_name_input.text().strip()
+        safe_project_name = project_name.replace(" ", "_").replace("/", "_")
+        project_path = Path(parent_dir) / safe_project_name
+
+        try:
+            project_path.mkdir(exist_ok=True)
+            return project_path
+        except Exception as e:
+            QMessageBox.critical(self, "Directory Error", f"Failed to create project directory:\n{e!s}")
+            return None
+
+    def _build_project_config(self) -> dict:
+        """Build project configuration dictionary."""
         config = {
             "project": {"name": self.project_name_input.text().strip()},
             "event_types": [],
@@ -352,37 +378,48 @@ class NewProjectDialog(BaseDialog):
             event_data = item.data(Qt.ItemDataRole.UserRole)
             config["event_types"].append(event_data)
 
-        # Save configuration
+        return config
+
+    def _save_config_file(self, project_path: Path, config: dict) -> bool:
+        """Save configuration to file."""
         config_path = project_path / "zarafe_config.json"
         try:
             with config_path.open("w", encoding="utf-8") as f:
                 json.dump(config, f, indent=2, ensure_ascii=False)
-
-            if self.existing_project_path:
-                # Editing - check if we need to update existing CSV files
-                original_config = self.project_config if hasattr(self, "project_config") else {}
-
-                if original_config and self._config_affects_csv_data(original_config, config):
-                    actions_info = self._get_csv_update_actions(original_config, config)
-                    if self._confirm_csv_update(actions_info):
-                        self._update_existing_csv_files(project_path, original_config, config)
-
-                # Just close without showing success dialog
-                self.project_path = project_path
-                self.accept()
-            else:
-                # Creating - show success dialog
-                QMessageBox.information(
-                    self,
-                    "Project Created",
-                    f"Project created successfully at:\n{project_path}\n\n"
-                    "You can now add video files to this directory and open the project in Zarafe.",
-                )
-                self.project_path = project_path
-                self.accept()
-
+            return True
         except Exception as e:
-            QMessageBox.critical(self, "Save Error", f"Failed to save project configuration:\n{str(e)}")
+            QMessageBox.critical(self, "Save Error", f"Failed to save project configuration:\n{e!s}")
+            return False
+
+    def _handle_post_save_actions(self, project_path: Path, config: dict) -> None:
+        """Handle actions after successful save."""
+        if self.existing_project_path:
+            self._handle_edit_completion(project_path, config)
+        else:
+            self._handle_creation_completion(project_path)
+
+    def _handle_edit_completion(self, project_path: Path, config: dict) -> None:
+        """Handle completion of project editing."""
+        original_config = self.project_config if hasattr(self, "project_config") else {}
+
+        if original_config and self._config_affects_csv_data(original_config, config):
+            actions_info = self._get_csv_update_actions(original_config, config)
+            if self._confirm_csv_update(actions_info):
+                self._update_existing_csv_files(project_path, original_config, config)
+
+        self.project_path = project_path
+        self.accept()
+
+    def _handle_creation_completion(self, project_path: Path) -> None:
+        """Handle completion of project creation."""
+        QMessageBox.information(
+            self,
+            "Project Created",
+            f"Project created successfully at:\n{project_path}\n\n"
+            "You can now add video files to this directory and open the project in Zarafe.",
+        )
+        self.project_path = project_path
+        self.accept()
 
     def get_project_path(self) -> Path | None:
         """Get the created project path."""
@@ -414,13 +451,14 @@ class NewProjectDialog(BaseDialog):
                         self._add_event_to_list(name, color, applies_to)
 
         except Exception as e:
-            QMessageBox.warning(self, "Load Error", f"Failed to load project configuration:\n{str(e)}")
+            QMessageBox.warning(self, "Load Error", f"Failed to load project configuration:\n{e!s}")
 
     def _analyze_event_changes(self) -> tuple[dict, list, list]:
         """Analyze what operations were performed on events.
 
         Returns:
             (renames_dict, deleted_list, added_list)
+
         """
         # Get current event names from the UI list
         current_events = []
@@ -433,9 +471,11 @@ class NewProjectDialog(BaseDialog):
         renames = {}
         if len(self.original_event_names) == len(current_events):
             # Same count - check for positional renames
-            for i, (orig_name, curr_name) in enumerate(zip(self.original_event_names, current_events)):
-                if orig_name != curr_name:
-                    renames[orig_name] = curr_name
+            renames = {
+                orig_name: curr_name
+                for orig_name, curr_name in zip(self.original_event_names, current_events, strict=False)
+                if orig_name != curr_name
+            }
 
         # Now find what's truly deleted and added (after accounting for renames)
         original_set = set(self.original_event_names)
@@ -451,7 +491,8 @@ class NewProjectDialog(BaseDialog):
 
         return renames, deleted, added
 
-    def _config_affects_csv_data(self, old_config: dict, new_config: dict) -> bool:
+    @staticmethod
+    def _config_affects_csv_data(old_config: dict, new_config: dict) -> bool:
         """Check if config changes affect existing CSV data."""
         old_event_types = old_config.get("event_types", [])
         new_event_types = new_config.get("event_types", [])
@@ -461,7 +502,7 @@ class NewProjectDialog(BaseDialog):
             return True
 
         # Compare each event by position (since order matters for editing)
-        for i, (old_event, new_event) in enumerate(zip(old_event_types, new_event_types)):
+        for old_event, new_event in zip(old_event_types, new_event_types, strict=False):
             if old_event.get("name") != new_event.get("name"):
                 return True  # Name changed - affects CSV
 
@@ -483,7 +524,7 @@ class NewProjectDialog(BaseDialog):
         )
         return reply == QMessageBox.StandardButton.Yes
 
-    def _get_csv_update_actions(self, old_config: dict, new_config: dict) -> str:
+    def _get_csv_update_actions(self, _old_config: dict, _new_config: dict) -> str:
         """Generate description of what actions will be taken on CSV files."""
         renames, deleted, added = self._analyze_event_changes()
 
@@ -506,14 +547,13 @@ class NewProjectDialog(BaseDialog):
             if len(actions) > 10:
                 action_text += f"\\n... and {len(actions) - 10} more changes"
             return action_text
-        else:
-            return "No changes detected"
+        return "No changes detected"
 
-    def _update_existing_csv_files(self, project_path: Path, old_config: dict, new_config: dict) -> None:
+    def _update_existing_csv_files(self, project_path: Path, _old_config: dict, _new_config: dict) -> None:
         """Update all CSV files in project directory with new event names."""
         try:
             # Analyze what operations were performed
-            renames, deleted, added = self._analyze_event_changes()
+            renames, deleted, _added = self._analyze_event_changes()
 
             # Create name mapping for CSV updates
             name_mapping = {}
@@ -544,9 +584,10 @@ class NewProjectDialog(BaseDialog):
                 QMessageBox.information(self, "Events CSV Updated", "Successfully updated events.csv file.")
 
         except Exception as e:
-            QMessageBox.critical(self, "CSV Update Error", f"Failed to update CSV files:\n{str(e)}")
+            QMessageBox.critical(self, "CSV Update Error", f"Failed to update CSV files:\n{e!s}")
 
-    def _update_csv_file(self, csv_file: Path, name_mapping: dict) -> bool:
+    @staticmethod
+    def _update_csv_file(csv_file: Path, name_mapping: dict) -> bool:
         """Update a single CSV file with renames, deletions, and additions."""
         try:
             # Read the CSV file
@@ -569,7 +610,7 @@ class NewProjectDialog(BaseDialog):
                         # Delete: skip this row
                         updated = True
                         continue
-                    elif new_name != row["event_name"]:
+                    if new_name != row["event_name"]:
                         # Rename: update the name only, preserve all other data
                         row["event_name"] = new_name
                         updated = True
@@ -580,7 +621,7 @@ class NewProjectDialog(BaseDialog):
 
             # Write back if changes were made
             if updated and fieldnames:
-                with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv") as temp_file:
+                with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".csv", encoding="utf-8") as temp_file:
                     writer = csv.DictWriter(temp_file, fieldnames=fieldnames)
                     writer.writeheader()
                     writer.writerows(filtered_rows)
@@ -596,7 +637,8 @@ class NewProjectDialog(BaseDialog):
             print(f"Error updating {csv_file}: {e}")
             return False
 
-    def _remove_marker_interval_files(self, project_path: Path) -> None:
+    @staticmethod
+    def _remove_marker_interval_files(project_path: Path) -> None:
         """Remove markerInterval.tsv files when Accuracy Test events are deleted."""
         try:
             marker_files = list(project_path.glob("**/markerInterval.tsv"))

@@ -4,9 +4,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
-
 from ..utils.file_utils import get_resource_path
-
 
 # Dialog constants
 DEFAULT_DIALOG_SIZE = (600, 500)
@@ -20,8 +18,13 @@ class BaseDialog(QDialog):
     """Base class for Zarafe dialogs with consistent styling and common setup."""
 
     def __init__(
-        self, parent=None, title: str = "Zarafe", size: tuple[int, int] = DEFAULT_DIALOG_SIZE, modal: bool = True
-    ):
+        self,
+        parent: object = None,
+        title: str = "Zarafe",
+        size: tuple[int, int] = DEFAULT_DIALOG_SIZE,
+        modal: bool = True,
+    ) -> None:
+        """Initialize the base dialog with consistent styling."""
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setFixedSize(*size)
@@ -169,7 +172,8 @@ class BaseDialog(QDialog):
         layout.setContentsMargins(*margins)
         return layout
 
-    def create_title_label(self, title_text: str, font_size: int = DEFAULT_TITLE_FONT_SIZE) -> QLabel:
+    @staticmethod
+    def create_title_label(title_text: str, font_size: int = DEFAULT_TITLE_FONT_SIZE) -> QLabel:
         """Create a styled title label."""
         title = QLabel(title_text)
         title_font = QFont()
@@ -179,7 +183,8 @@ class BaseDialog(QDialog):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         return title
 
-    def create_button_layout(self, *buttons: tuple[str, callable], primary_button_idx: int = -1) -> QHBoxLayout:
+    @staticmethod
+    def create_button_layout(*buttons: tuple[str, callable], primary_button_idx: int = -1) -> QHBoxLayout:
         """Create a button layout with consistent styling.
 
         Args:
@@ -188,6 +193,7 @@ class BaseDialog(QDialog):
 
         Returns:
             QHBoxLayout with the configured buttons
+
         """
         button_layout = QHBoxLayout()
         button_layout.addStretch()

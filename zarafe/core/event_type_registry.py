@@ -1,18 +1,16 @@
 """Event type registry and validation logic."""
 
-from typing import List
-
 from .configuration_service import ConfigurationService
 
 
 class EventTypeRegistry:
     """Manages event type validation and metadata."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize event type registry."""
         self._config_service = ConfigurationService.get_instance()
 
-    def get_event_types(self) -> List[str]:
+    def get_event_types(self) -> list[str]:
         """Get list of available event types."""
         config = self._config_service.get_config()
         if config is None:

@@ -7,7 +7,8 @@ from pathlib import Path
 class ProjectConfig:
     """Manages project-specific configuration from JSON files."""
 
-    def __init__(self, config_path: Path):
+    def __init__(self, config_path: Path) -> None:
+        """Initialize project configuration from file."""
         self.config_path = config_path
         self.config = {}
         self.load_config(config_path)

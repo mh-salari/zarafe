@@ -12,7 +12,10 @@ from ..core.video_manager import VideoManager
 class MainController:
     """Coordinates video loading and application state management."""
 
-    def __init__(self, video_manager: VideoManager, event_manager: EventManager, gaze_manager: GazeDataManager):
+    def __init__(
+        self, video_manager: VideoManager, event_manager: EventManager, gaze_manager: GazeDataManager
+    ) -> None:
+        """Initialize the main controller with required managers."""
         self.video_manager = video_manager
         self.event_manager = event_manager
         self.gaze_manager = gaze_manager
@@ -21,7 +24,7 @@ class MainController:
         self.current_file_name = ""
         self.has_unsaved_changes = False
 
-    def load_video(self, video_paths: list[str], index: int, parent_window) -> bool:
+    def load_video(self, video_paths: list[str], index: int, parent_window: object) -> bool:
         """Load video and associated data files."""
         if not self.check_unsaved_changes(parent_window):
             return False
@@ -61,7 +64,7 @@ class MainController:
                 except Exception as e:
                     print(f"Warning: Failed to load {filename}: {e}")
 
-    def check_unsaved_changes(self, parent_window) -> bool:
+    def check_unsaved_changes(self, parent_window: object) -> bool:
         """Check if there are unsaved changes and prompt user."""
         if not self.has_unsaved_changes:
             return True

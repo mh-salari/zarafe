@@ -4,7 +4,6 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QListWidget, QPushButton, QVBoxLayout
 
-
 # Event control constants
 EVENTS_LIST_MAX_HEIGHT = 200
 STRETCH_FACTOR = 1
@@ -14,10 +13,12 @@ SHORTCUTS_FONT_SIZE = 11
 class EventControls:
     """Event management controls component."""
 
-    def __init__(self, parent):
+    def __init__(self, parent: object) -> None:
+        """Initialize the event controls component."""
         self.parent = parent
 
     def create_event_section(self) -> QVBoxLayout:
+        """Create the main event management section."""
         event_section = QVBoxLayout()
 
         # Event creation
@@ -49,6 +50,7 @@ class EventControls:
         return event_section
 
     def create_event_creation(self) -> QVBoxLayout:
+        """Create event creation controls."""
         event_creation_layout = QVBoxLayout()
         event_creation_layout.addWidget(QLabel("Create Event:"))
 
@@ -64,6 +66,7 @@ class EventControls:
         return event_creation_layout
 
     def create_event_controls(self) -> QVBoxLayout:
+        """Create event action controls."""
         event_controls = QVBoxLayout()
 
         button_row1 = QHBoxLayout()
@@ -87,7 +90,9 @@ class EventControls:
 
         return event_controls
 
-    def create_shortcuts_info(self) -> QVBoxLayout:
+    @staticmethod
+    def create_shortcuts_info() -> QVBoxLayout:
+        """Create keyboard shortcuts information section."""
         shortcuts_layout = QVBoxLayout()
 
         shortcuts_label = QLabel("<h4>Keyboard Shortcuts</h4>")
@@ -108,6 +113,7 @@ class EventControls:
         return shortcuts_layout
 
     def create_about_link(self) -> QLabel:
+        """Create clickable about link."""
         about_label = QLabel("About")
         about_label.setStyleSheet("color: white; text-decoration: underline;")
         about_label.setAlignment(Qt.AlignmentFlag.AlignRight)

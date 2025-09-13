@@ -1,7 +1,6 @@
 """Video playback and management."""
 
 import cv2
-
 from PyQt6.QtCore import QTimer
 
 from .audio_manager import AudioManager
@@ -10,7 +9,8 @@ from .audio_manager import AudioManager
 class VideoManager:
     """Manages video loading, playback, and frame navigation."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the video manager."""
         self.cap: cv2.VideoCapture | None = None
         self.current_frame = 0
         self.total_frames = 0
@@ -84,7 +84,7 @@ class VideoManager:
         self.playing = not self.playing
         return self.playing
 
-    def start_playback(self, frame_callback) -> None:
+    def start_playback(self, frame_callback: object) -> None:
         """Start playback with callback."""
         if self.playing:
             if self.frame_callback != frame_callback:

@@ -10,7 +10,8 @@ PANEL_PADDING = "5px"
 class MetadataPanel:
     """Metadata input panel component."""
 
-    def __init__(self, parent):
+    def __init__(self, parent: object) -> None:
+        """Initialize the metadata panel component."""
         self.parent = parent
 
     def create_metadata_section(self) -> QLabel:

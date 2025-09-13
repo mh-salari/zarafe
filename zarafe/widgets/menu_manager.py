@@ -6,15 +6,18 @@ from PyQt6.QtWidgets import QMenuBar
 class MenuManager:
     """Manages application menu bar setup and state."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the menu manager."""
         self.edit_project_action = None
 
-    def setup_menu_bar(self, menu_bar: QMenuBar, open_callback, edit_callback, about_callback):
+    def setup_menu_bar(
+        self, menu_bar: QMenuBar, open_callback: object, edit_callback: object, about_callback: object
+    ) -> None:
         """Setup complete application menu bar with callbacks."""
         self._create_project_menu(menu_bar, open_callback, edit_callback)
         self._create_help_menu(menu_bar, about_callback)
 
-    def _create_project_menu(self, menu_bar: QMenuBar, open_callback, edit_callback) -> None:
+    def _create_project_menu(self, menu_bar: QMenuBar, open_callback: object, edit_callback: object) -> None:
         """Create project management menu."""
         project_menu = menu_bar.addMenu("&Project")
 
@@ -31,7 +34,8 @@ class MenuManager:
         self.edit_project_action.setEnabled(False)
         self.edit_project_action.triggered.connect(edit_callback)
 
-    def _create_help_menu(self, menu_bar: QMenuBar, about_callback) -> None:
+    @staticmethod
+    def _create_help_menu(menu_bar: QMenuBar, about_callback: object) -> None:
         """Create help menu."""
         help_menu = menu_bar.addMenu("&Help")
         about_action = help_menu.addAction("&About")

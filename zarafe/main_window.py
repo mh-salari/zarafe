@@ -11,35 +11,35 @@ from PyQt6.QtWidgets import (
     QMessageBox,
 )
 
+from .controllers.main_controller import MainController
+from .controllers.project_controller import ProjectController
+from .controllers.video_navigation_controller import VideoNavigationController
 from .core.config import ProjectConfig
 from .core.configuration_service import ConfigurationService
 from .core.event_manager import EventManager
 from .core.gaze_data import GazeDataManager
 from .core.shortcut_manager import ShortcutManager
 from .core.video_manager import VideoManager
-from .controllers.main_controller import MainController
-from .controllers.project_controller import ProjectController
-from .controllers.video_navigation_controller import VideoNavigationController
 from .utils.file_utils import get_resource_path
 from .widgets.about_dialog import AboutDialog
 from .widgets.event_controls import EventControls
-from .widgets.metadata_panel import MetadataPanel
 from .widgets.menu_manager import MenuManager
+from .widgets.metadata_panel import MetadataPanel
 from .widgets.panels.left_panel import LeftPanel
 from .widgets.panels.main_layout_manager import MainLayoutManager
 from .widgets.video_controls import VideoControls
 from .widgets.video_display import VideoDisplay
-
 
 # UI Constants
 PANEL_SIZES = [200, 600, 300]  # Left, center, right panel widths
 JUMP_FRAMES = 10  # Frame jump amount for keyboard shortcuts
 
 
-class VideoAnnotator(QMainWindow):
+class VideoAnnotator(QMainWindow):  # noqa: PLR0904
     """Main video annotation application window."""
 
-    def __init__(self, project_path: Path = None, project_config: ProjectConfig = None) -> None:
+    def __init__(self, project_path: Path | None = None, project_config: ProjectConfig | None = None) -> None:
+        """Initialize the main video annotation window."""
         super().__init__()
 
         # Initialize configuration service
@@ -272,7 +272,7 @@ class VideoAnnotator(QMainWindow):
         """Mark event end."""
         self._mark_event_frame(self.event_manager.mark_end)
 
-    def _mark_event_frame(self, mark_function) -> None:
+    def _mark_event_frame(self, mark_function: object) -> None:
         """Helper for marking event frames."""
         success, message = mark_function(self.video_manager.current_frame)
         if not success:
@@ -388,10 +388,9 @@ class VideoAnnotator(QMainWindow):
         """Reload the current project to refresh all UI components after changes."""
         # Update the configuration service with the potentially updated project path
         updated_project_path = self.project_controller.project_path
-        if updated_project_path:
+        if updated_project_path and self.config_service.is_project_loaded():
             # Update the project path in the configuration service
-            if self.config_service._config:
-                self.config_service._project_path = updated_project_path
+            self.config_service.update_project_path(updated_project_path)
 
         # Reinitialize components with updated configuration
         self._initialize_config_components()
@@ -410,12 +409,12 @@ class VideoAnnotator(QMainWindow):
         return True
 
     # Event handlers
-    def keyPressEvent(self, event: QKeyEvent) -> None:
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle key events for shortcuts."""
         # Let QShortcut handle all shortcuts, just pass through
         super().keyPressEvent(event)
 
-    def closeEvent(self, event: QCloseEvent) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle application close."""
         if self.check_unsaved_changes():
             self.video_manager.release()

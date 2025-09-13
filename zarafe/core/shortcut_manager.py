@@ -1,7 +1,6 @@
 """Centralized keyboard shortcut management system."""
 
-from typing import Callable, Dict
-
+from collections.abc import Callable
 
 from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import QWidget
@@ -10,12 +9,13 @@ from PyQt6.QtWidgets import QWidget
 class ShortcutManager:
     """Centralized manager for application keyboard shortcuts."""
 
-    def __init__(self, parent_widget: QWidget):
+    def __init__(self, parent_widget: QWidget) -> None:
+        """Initialize the shortcut manager."""
         self.parent_widget = parent_widget
-        self.shortcuts: Dict[str, QShortcut] = {}
+        self.shortcuts: dict[str, QShortcut] = {}
         self.registered = False
 
-    def register_shortcuts(self, shortcut_map: Dict[str, Callable]) -> None:
+    def register_shortcuts(self, shortcut_map: dict[str, Callable]) -> None:
         """Register all shortcuts from a mapping of key sequence to callback."""
         if self.registered:
             return
@@ -47,7 +47,7 @@ class ShortcutManager:
         self.shortcuts.clear()
         self.registered = False
 
-    def get_registered_shortcuts(self) -> Dict[str, str]:
+    def get_registered_shortcuts(self) -> dict[str, str]:
         """Get a dict of registered shortcuts and their callback names."""
         return {key: shortcut.key().toString() for key, shortcut in self.shortcuts.items()}
 

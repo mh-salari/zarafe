@@ -13,7 +13,8 @@ from PyQt6.QtWidgets import (
 class LeftPanel(QWidget):
     """Video navigation and management panel."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the left panel."""
         super().__init__()
         self._setup_ui()
         self._connect_signals()
@@ -43,18 +44,17 @@ class LeftPanel(QWidget):
     def _connect_signals(self) -> None:
         """Connect internal widget signals."""
         # Signals will be connected to external controllers by the main window
-        pass
 
-    def connect_import_callback(self, callback) -> None:
+    def connect_import_callback(self, callback: object) -> None:
         """Connect import videos callback."""
         self.import_videos_btn.clicked.connect(callback)
 
-    def connect_navigation_callbacks(self, prev_callback, next_callback) -> None:
+    def connect_navigation_callbacks(self, prev_callback: object, next_callback: object) -> None:
         """Connect video navigation callbacks."""
         self.prev_video_btn.clicked.connect(prev_callback)
         self.next_video_btn.clicked.connect(next_callback)
 
-    def connect_video_selection_callback(self, callback) -> None:
+    def connect_video_selection_callback(self, callback: object) -> None:
         """Connect video selection callback."""
         self.video_list.itemClicked.connect(callback)
 

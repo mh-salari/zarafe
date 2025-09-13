@@ -1,12 +1,11 @@
 """Event creation, management, and persistence."""
 
 import csv
+import operator
 from pathlib import Path
 from typing import Any
 
-
 from .event_type_registry import EventTypeRegistry
-
 
 # History management constants
 MAX_HISTORY_SIZE = 20
@@ -15,7 +14,8 @@ MAX_HISTORY_SIZE = 20
 class EventManager:
     """Manages annotation events and their persistence."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the event manager."""
         self.events: list[dict[str, Any]] = []
         self.selected_event: int | None = None
         self.event_history: list[list[dict[str, Any]]] = []
@@ -88,9 +88,9 @@ class EventManager:
 
             if use_end and event["end"] != -1:
                 return event["end"]
-            elif event["start"] != -1:
+            if event["start"] != -1:
                 return event["start"]
-            elif event["end"] != -1:
+            if event["end"] != -1:
                 return event["end"]
 
         return None
@@ -147,19 +147,17 @@ class EventManager:
                 rows_to_write.append(row)
 
             # Sort by start frame
-            rows_to_write.sort(key=lambda x: x[2])
+            rows_to_write.sort(key=operator.itemgetter(2))
 
             with csv_path.open("w", newline="") as csvfile:
                 writer = csv.writer(csvfile)
-                writer.writerow(
-                    [
-                        "file_name",
-                        "event_name",
-                        "start_frame",
-                        "end_frame",
-                        "duration_frames",
-                    ]
-                )
+                writer.writerow([
+                    "file_name",
+                    "event_name",
+                    "start_frame",
+                    "end_frame",
+                    "duration_frames",
+                ])
                 writer.writerows(rows_to_write)
 
             return True, f"Events saved to {csv_path}"
@@ -182,8 +180,8 @@ class EventManager:
 
                     event = {
                         "name": event_name,
-                        "start": int(start_frame) if start_frame not in ["-1", "N.A."] else -1,
-                        "end": int(end_frame) if end_frame not in ["-1", "N.A."] else -1,
+                        "start": int(start_frame) if start_frame not in {"-1", "N.A."} else -1,
+                        "end": int(end_frame) if end_frame not in {"-1", "N.A."} else -1,
                     }
                     self.events.append(event)
 

@@ -3,9 +3,7 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSlider, QVBoxLayout
 
-
 from .pupil_plot import PupilSizePlot
-
 
 # Control constants
 PUPIL_LABEL_FONT_SIZE = 12
@@ -17,10 +15,12 @@ MUTE_BUTTON_WIDTH = 40
 class VideoControls:
     """Video playback controls component."""
 
-    def __init__(self, parent):
+    def __init__(self, parent: object) -> None:
+        """Initialize the video controls component."""
         self.parent = parent
 
     def setup_controls(self) -> QVBoxLayout:
+        """Setup video control layout."""
         control_layout = QVBoxLayout()
 
         # Pupil size plot
@@ -48,6 +48,7 @@ class VideoControls:
         return control_layout
 
     def create_playback_buttons(self) -> QHBoxLayout:
+        """Create playback control buttons."""
         playback_layout = QHBoxLayout()
 
         self.parent.play_btn = QPushButton("Play")

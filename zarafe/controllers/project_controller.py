@@ -9,20 +9,21 @@ from ..core.configuration_service import ConfigurationService
 from ..utils.file_utils import find_video_directories
 from ..utils.importer import import_recordings
 from ..utils.sorting import natural_sort_key
+from ..widgets.new_project_dialog import NewProjectDialog
+from ..widgets.project_dialog import ProjectDialog
 
 
 class ProjectController:
     """Manages project operations and configuration."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the project controller."""
         self.config_service = ConfigurationService.get_instance()
         self.project_path = None
         self.video_paths = []
 
-    def show_project_dialog(self, parent_window) -> tuple[Path, object] | None:
+    def show_project_dialog(self, parent_window: object) -> tuple[Path, object] | None:
         """Show project selection dialog and return project info."""
-        from ..widgets.project_dialog import ProjectDialog
-
         dialog = ProjectDialog(parent_window)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return None
@@ -36,12 +37,10 @@ class ProjectController:
         self.project_path = project_path
         return project_path, project_config
 
-    def edit_current_project(self, parent_window) -> bool:
+    def edit_current_project(self, parent_window: object) -> bool:
         """Edit the currently loaded project."""
         if not self.project_path:
             return False
-
-        from ..widgets.new_project_dialog import NewProjectDialog
 
         edit_dialog = NewProjectDialog(parent_window, existing_project_path=self.project_path)
         if edit_dialog.exec() == QDialog.DialogCode.Accepted:
@@ -49,7 +48,7 @@ class ProjectController:
             updated_project_path = edit_dialog.get_project_path()
             if updated_project_path:
                 self.project_path = updated_project_path
-            
+
             config_path = self.project_path / "zarafe_config.json"
             self.config_service.reload_config(config_path)
             return True
@@ -69,7 +68,7 @@ class ProjectController:
         self.video_paths.sort(key=natural_sort_key)
 
         video_list.clear()
-        for video_path, display_name in video_dirs:
+        for _, display_name in video_dirs:
             item = QListWidgetItem(display_name)
             video_list.addItem(item)
 
@@ -83,7 +82,7 @@ class ProjectController:
         """Set project path."""
         self.project_path = project_path
 
-    def import_videos(self, parent_widget) -> int:
+    def import_videos(self, parent_widget: object) -> int:
         """Import eye tracking recordings and return number of successfully imported recordings."""
         if not self.project_path:
             QMessageBox.warning(parent_widget, "No Project", "Please open a project first.")

@@ -11,10 +11,10 @@ class ConfigurationService:
 
     _instance: Optional["ConfigurationService"] = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize configuration service."""
-        self._config: Optional[ProjectConfig] = None
-        self._project_path: Optional[Path] = None
+        self._config: ProjectConfig | None = None
+        self._project_path: Path | None = None
 
     @classmethod
     def get_instance(cls) -> "ConfigurationService":
@@ -40,7 +40,7 @@ class ConfigurationService:
             return "Video Annotation Tool"
         return self._config.get_project_name()
 
-    def get_project_path(self) -> Optional[Path]:
+    def get_project_path(self) -> Path | None:
         """Get current project path."""
         return self._project_path
 
@@ -48,6 +48,10 @@ class ConfigurationService:
         """Check if a project is currently loaded."""
         return self._config is not None
 
-    def get_config(self) -> Optional[ProjectConfig]:
+    def get_config(self) -> ProjectConfig | None:
         """Get underlying ProjectConfig instance."""
         return self._config
+
+    def update_project_path(self, new_path: Path) -> None:
+        """Update the project path (e.g., after project rename)."""
+        self._project_path = new_path

@@ -2,8 +2,7 @@
 
 from pathlib import Path
 
-
-from PyQt6.QtCore import Qt, QSettings
+from PyQt6.QtCore import QSettings, Qt
 from PyQt6.QtWidgets import (
     QDialog,
     QFileDialog,
@@ -17,12 +16,10 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-
 from ..core.config import ProjectConfig
 from ..utils.file_utils import find_video_directories
 from .base_dialog import BaseDialog
 from .new_project_dialog import NewProjectDialog
-
 
 # Dialog constants
 DIALOG_SIZE = (600, 500)
@@ -41,7 +38,8 @@ SUCCESS_LABEL_STYLE = "QLabel { background-color: #1e3c1e; color: #aaffaa; paddi
 class ProjectDialog(BaseDialog):
     """Dialog for selecting and opening eye tracking projects."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: object = None) -> None:
+        """Initialize the project dialog."""
         super().__init__(parent, "Zarafe - Select Project", DIALOG_SIZE, True)
         self.selected_project_path = None
         self.project_config = None
@@ -176,7 +174,7 @@ class ProjectDialog(BaseDialog):
             self.open_btn.setEnabled(True)
 
         except Exception as e:
-            self.info_label.setText(f"Error: Invalid configuration file:\n{str(e)}")
+            self.info_label.setText(f"Error: Invalid configuration file:\n{e!s}")
             self.path_label.setStyleSheet(ERROR_LABEL_STYLE)
             self.edit_btn.setEnabled(False)
             self.open_btn.setEnabled(False)

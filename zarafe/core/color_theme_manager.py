@@ -1,19 +1,17 @@
 """Color theme management for event visualization."""
 
-from typing import Dict, Tuple
-
 from .configuration_service import ConfigurationService
 
 
 class ColorThemeManager:
     """Manages color themes and caching for event visualization."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize color theme manager."""
-        self._color_cache: Dict[str, Tuple[int, int, int]] = {}
+        self._color_cache: dict[str, tuple[int, int, int]] = {}
         self._config_service = ConfigurationService.get_instance()
 
-    def get_color(self, event_name: str) -> Tuple[int, int, int]:
+    def get_color(self, event_name: str) -> tuple[int, int, int]:
         """Get RGB color for event type with caching."""
         if event_name in self._color_cache:
             return self._color_cache[event_name]
@@ -29,7 +27,7 @@ class ColorThemeManager:
         self._color_cache[event_name] = color
         return color
 
-    def get_rgba_color(self, event_name: str, alpha: int = 255) -> Tuple[int, int, int, int]:
+    def get_rgba_color(self, event_name: str, alpha: int = 255) -> tuple[int, int, int, int]:
         """Get RGBA color for event type."""
         rgb = self.get_color(event_name)
         return (*rgb, alpha)

@@ -8,7 +8,8 @@ import pandas as pd
 class GazeDataManager:
     """Manages gaze data loading and frame mapping."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the gaze data manager."""
         self.gaze_data: pd.DataFrame | None = None
         self.frame_to_gaze: dict[int, list[tuple[float, float]]] = {}
 
@@ -32,5 +33,6 @@ class GazeDataManager:
         return self.frame_to_gaze.get(frame_idx, [])
 
     def clear(self) -> None:
+        """Clear all gaze data."""
         self.gaze_data = None
         self.frame_to_gaze = {}

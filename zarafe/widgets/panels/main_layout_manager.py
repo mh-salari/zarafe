@@ -3,7 +3,6 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QSplitter, QVBoxLayout, QWidget
 
-
 # Layout constants
 DEFAULT_PANEL_SIZES = [200, 600, 300]  # Left, center, right panel widths
 
@@ -11,7 +10,8 @@ DEFAULT_PANEL_SIZES = [200, 600, 300]  # Left, center, right panel widths
 class MainLayoutManager:
     """Coordinates main window layout and panel organization."""
 
-    def __init__(self, main_window):
+    def __init__(self, main_window: object) -> None:
+        """Initialize the main layout manager."""
         self.main_window = main_window
         self.main_splitter = None
 
@@ -22,8 +22,8 @@ class MainLayoutManager:
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # Use provided widgets or create empty placeholders
-        center_panel = center_widget if center_widget else QWidget()
-        right_panel = right_widget if right_widget else QWidget()
+        center_panel = center_widget or QWidget()
+        right_panel = right_widget or QWidget()
 
         self.main_splitter.addWidget(left_panel)
         self.main_splitter.addWidget(center_panel)
@@ -43,7 +43,8 @@ class MainLayoutManager:
 
         return self.main_splitter
 
-    def create_center_panel(self, video_display, video_controls) -> QWidget:
+    @staticmethod
+    def create_center_panel(video_display: object, video_controls: object) -> QWidget:
         """Create video display and controls panel."""
         panel = QWidget()
         layout = QVBoxLayout(panel)
@@ -58,7 +59,8 @@ class MainLayoutManager:
 
         return panel
 
-    def create_right_panel(self, metadata_panel, event_controls) -> QWidget:
+    @staticmethod
+    def create_right_panel(metadata_panel: object, event_controls: object) -> QWidget:
         """Create metadata and event management panel."""
         panel = QWidget()
         layout = QVBoxLayout(panel)
