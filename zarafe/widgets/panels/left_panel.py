@@ -9,6 +9,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ...utils.icon_loader import load_icon
+
 
 class LeftPanel(QWidget):
     """Video navigation and management panel."""
@@ -25,8 +27,10 @@ class LeftPanel(QWidget):
 
         # Navigation controls
         nav_layout = QHBoxLayout()
-        self.prev_video_btn = QPushButton("Previous Video")
-        self.next_video_btn = QPushButton("Next Video")
+        self.prev_video_btn = QPushButton(" Previous Video")
+        self.prev_video_btn.setIcon(load_icon("arrow_up", 20))
+        self.next_video_btn = QPushButton(" Next Video")
+        self.next_video_btn.setIcon(load_icon("arrow_down", 20))
         nav_layout.addWidget(self.prev_video_btn)
         nav_layout.addWidget(self.next_video_btn)
         layout.addLayout(nav_layout)

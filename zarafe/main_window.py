@@ -21,6 +21,7 @@ from .core.gaze_data import GazeDataManager
 from .core.shortcut_manager import ShortcutManager
 from .core.video_manager import VideoManager
 from .utils.file_utils import get_resource_path
+from .utils.icon_loader import load_icon
 from .widgets.about_dialog import AboutDialog
 from .widgets.event_controls import EventControls
 from .widgets.menu_manager import MenuManager
@@ -189,6 +190,7 @@ class VideoAnnotator(QMainWindow):  # noqa: PLR0904
         self.timeline_slider.setMaximum(self.video_manager.total_frames - 1)
         self.timeline_slider.setValue(0)
         self.play_btn.setText("Play")
+        self.play_btn.setIcon(load_icon("play", 20))
 
     # Playback controls
     def display_frame(self) -> None:
@@ -224,7 +226,10 @@ class VideoAnnotator(QMainWindow):  # noqa: PLR0904
             return
 
         playing = self.video_manager.toggle_playback()
-        self.play_btn.setText("Pause" if playing else "Play")
+        button_text = "Pause" if playing else "Play"
+        icon_name = "pause" if playing else "play"
+        self.play_btn.setText(button_text)
+        self.play_btn.setIcon(load_icon(icon_name, 20))
 
         if playing:
             self.video_manager.start_playback(self.next_frame)
@@ -287,7 +292,27 @@ class VideoAnnotator(QMainWindow):  # noqa: PLR0904
         self.update_pupil_plot()
 
     def delete_event(self) -> None:
-        """Delete selected event."""
+        """Delete selected event with confirmation."""
+        if self.event_manager.selected_event is None:
+            QMessageBox.warning(self, "Warning", "Please select an event to delete.")
+            return
+
+        # Get the selected event details for confirmation
+        event_index = self.event_manager.selected_event
+        event_text = self.event_manager.get_event_display_text(event_index)
+
+        # Show confirmation dialog
+        reply = QMessageBox.question(
+            self,
+            "Delete Event",
+            f"Are you sure you want to delete this event?\n\n{event_text}",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
         success, message = self.event_manager.delete_selected_event()
         if not success:
             QMessageBox.warning(self, "Warning", message)
@@ -310,7 +335,9 @@ class VideoAnnotator(QMainWindow):  # noqa: PLR0904
     def toggle_mute(self) -> None:
         """Toggle audio mute/unmute."""
         is_muted = self.video_manager.audio_manager.toggle_mute()
-        self.mute_btn.setText("🔇" if is_muted else "🔊")
+        icon_name = "mute" if is_muted else "volume"
+        self.mute_btn.setIcon(load_icon(icon_name, 20))
+        self.mute_btn.setToolTip("Unmute" if is_muted else "Mute")
 
     def undo_action(self) -> None:
         """Undo last action."""

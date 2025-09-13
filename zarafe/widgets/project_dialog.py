@@ -32,7 +32,7 @@ DEFAULT_LABEL_STYLE = (
     "QLabel { background-color: #1e1e1e; padding: 10px; border-radius: 4px; border: 1px solid #555555; }"
 )
 ERROR_LABEL_STYLE = "QLabel { background-color: #3c1e1e; color: #ffaaaa; padding: 10px; border-radius: 4px; border: 1px solid #aa5555; }"
-SUCCESS_LABEL_STYLE = "QLabel { background-color: #1e3c1e; color: #aaffaa; padding: 10px; border-radius: 4px; border: 1px solid #55aa55; }"
+SUCCESS_LABEL_STYLE = "QLabel { background-color: #1e2f2f; color: #aaeeff; padding: 10px; border-radius: 4px; border: 1px solid #00525f; }"
 
 
 class ProjectDialog(BaseDialog):

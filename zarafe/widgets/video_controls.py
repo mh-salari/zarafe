@@ -3,6 +3,7 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSlider, QVBoxLayout
 
+from ..utils.icon_loader import load_icon
 from .pupil_plot import PupilSizePlot
 
 # Control constants
@@ -51,17 +52,25 @@ class VideoControls:
         """Create playback control buttons."""
         playback_layout = QHBoxLayout()
 
-        self.parent.play_btn = QPushButton("Play")
+        # Create buttons with icons
+        self.parent.play_btn = QPushButton(" Play")
+        self.parent.play_btn.setIcon(load_icon("play", 20))
         self.parent.play_btn.clicked.connect(self.parent.toggle_play)
-        self.parent.prev_frame_btn = QPushButton("← Previous Frame")
+
+        self.parent.prev_frame_btn = QPushButton(" Previous Frame")
+        self.parent.prev_frame_btn.setIcon(load_icon("chevron_left", 20))
         self.parent.prev_frame_btn.clicked.connect(self.parent.prev_frame)
-        self.parent.next_frame_btn = QPushButton("Next Frame →")
+
+        self.parent.next_frame_btn = QPushButton("Next Frame ")
+        self.parent.next_frame_btn.setIcon(load_icon("chevron_right", 20))
         self.parent.next_frame_btn.clicked.connect(self.parent.next_frame)
 
         # Mute button
-        self.parent.mute_btn = QPushButton("🔊")
+        self.parent.mute_btn = QPushButton()
+        self.parent.mute_btn.setIcon(load_icon("volume", 20))
         self.parent.mute_btn.clicked.connect(self.parent.toggle_mute)
         self.parent.mute_btn.setMaximumWidth(MUTE_BUTTON_WIDTH)
+        self.parent.mute_btn.setToolTip("Toggle mute")
 
         self.parent.frame_info = QLabel("Frame: 0 / 0")
 

@@ -4,9 +4,11 @@ import csv
 import json
 import shutil
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QEnterEvent, QMouseEvent
 from PyQt6.QtWidgets import (
     QColorDialog,
     QDialog,
@@ -26,7 +28,60 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtWidgets import QLabel as DialogLabel
 
+from ..utils.icon_loader import load_icon
 from .base_dialog import BaseDialog
+
+
+class HoverActionWidget(QWidget):
+    """Custom widget for actions with hover effects."""
+
+    def __init__(
+        self,
+        icon_name: str,
+        text: str,
+        callback: Callable[[], None],
+        hover_color: str = "#f44336",
+        parent: QWidget | None = None,
+    ) -> None:
+        """Initialize hover action widget."""
+        super().__init__(parent)
+        self.callback = callback
+        self.icon_name = icon_name
+        self.text = text
+        self.hover_color = hover_color
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        # Create layout
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(4, 4, 8, 4)
+        layout.setSpacing(4)
+
+        # Create icon and text
+        self.icon_label = QLabel()
+        self.icon_label.setPixmap(load_icon(self.icon_name, 14).pixmap(14, 14))
+        self.text_label = QLabel(self.text)
+        self.text_label.setStyleSheet("color: #ffffff; font-size: 12px;")
+
+        layout.addWidget(self.icon_label)
+        layout.addWidget(self.text_label)
+
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        """Change to hover color on hover."""
+        self.icon_label.setPixmap(load_icon(self.icon_name, 14, self.hover_color).pixmap(14, 14))
+        self.text_label.setStyleSheet(f"color: {self.hover_color}; font-size: 12px;")
+        super().enterEvent(event)
+
+    def leaveEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        """Change back to white when not hovering."""
+        self.icon_label.setPixmap(load_icon(self.icon_name, 14).pixmap(14, 14))
+        self.text_label.setStyleSheet("color: #ffffff; font-size: 12px;")
+        super().leaveEvent(event)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Handle mouse click events."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.callback()
+        super().mousePressEvent(event)
 
 
 class NewProjectDialog(BaseDialog):
@@ -170,19 +225,17 @@ class NewProjectDialog(BaseDialog):
                 else None
             )
 
-        # Edit action - shows for all events (can edit color, and name if allowed)
-        edit_label = QLabel("✏️ edit")
-        edit_label.setStyleSheet("color: #4CAF50; font-size: 12px; padding: 4px 8px; background-color: transparent;")
-        edit_label.setCursor(Qt.CursorShape.PointingHandCursor)
-        edit_label.mousePressEvent = lambda _: self._edit_or_add_event(item, name_label, color_box)
-        item_layout.addWidget(edit_label)
+        # Edit action with teal hover effect
+        edit_widget = HoverActionWidget(
+            "edit", "edit", lambda: self._edit_or_add_event(item, name_label, color_box), hover_color="#00525f"
+        )
+        item_layout.addWidget(edit_widget)
 
-        # Delete action
-        delete_label = QLabel("🗑️ delete")
-        delete_label.setStyleSheet("color: #f44336; font-size: 12px; padding: 4px 8px; background-color: transparent;")
-        delete_label.setCursor(Qt.CursorShape.PointingHandCursor)
-        delete_label.mousePressEvent = lambda _: self._delete_event_item(item)
-        item_layout.addWidget(delete_label)
+        # Delete action with red hover effect
+        delete_widget = HoverActionWidget(
+            "delete", "delete", lambda: self._delete_event_item(item), hover_color="#f44336"
+        )
+        item_layout.addWidget(delete_widget)
 
         # Create list item - let CSS handle the styling
         item = QListWidgetItem()
@@ -294,9 +347,29 @@ class NewProjectDialog(BaseDialog):
             )
 
     def _delete_event_item(self, item: QListWidgetItem) -> None:
-        """Delete an event item from the list."""
-        row = self.events_list.row(item)
-        self.events_list.takeItem(row)
+        """Delete an event item from the list with confirmation."""
+        # Get event name for confirmation
+        widget = self.events_list.itemWidget(item)
+        event_name = "this event"
+        if widget:
+            # Try to find the event name from the widget
+            for child in widget.findChildren(QLabel):
+                if child.text() and not child.text().startswith(" ") and child.text() not in {"edit", "delete"}:
+                    event_name = f'"{child.text()}"'
+                    break
+
+        # Show confirmation dialog
+        reply = QMessageBox.question(
+            self,
+            "Delete Event",
+            f"Are you sure you want to delete {event_name}?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            row = self.events_list.row(item)
+            self.events_list.takeItem(row)
 
     def save_project(self) -> None:
         """Save or update the project configuration."""
@@ -513,7 +586,7 @@ class NewProjectDialog(BaseDialog):
         message = "You have changed event configuration in this project.\n\n"
         if actions_text:
             message += f"The following changes will be applied to events.csv:\n{actions_text}\n\n"
-        message += "⚠️ WARNING: This cannot be undone!\n\nDo you want to update events.csv?"
+        message += "WARNING: This cannot be undone!\n\nDo you want to update events.csv?"
 
         reply = QMessageBox.question(
             self,

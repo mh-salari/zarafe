@@ -63,12 +63,12 @@ class BaseDialog(QDialog):
                 background-color: #1e1e1e;
             }
             QPushButton:enabled#primaryBtn {
-                background-color: #4CAF50;
-                border-color: #4CAF50;
+                background-color: #00525f;
+                border-color: #00525f;
                 font-weight: bold;
             }
             QPushButton:hover#primaryBtn {
-                background-color: #45a049;
+                background-color: #007f76;
             }
             QLineEdit, QComboBox, QSpinBox, QTextEdit {
                 background-color: #3c3c3c;
@@ -81,7 +81,7 @@ class BaseDialog(QDialog):
                 background-color: #3c3c3c;
                 border: 1px solid #555555;
                 border-radius: 4px;
-                selection-background-color: #4CAF50;
+                selection-background-color: #00525f;
                 selection-color: white;
             }
             QListWidget::item {
@@ -101,12 +101,12 @@ class BaseDialog(QDialog):
                 background-color: #4c4c4c;
             }
             QListWidget::item:selected {
-                background-color: #4CAF50;
+                background-color: #00525f;
                 color: white;
                 font-weight: bold;
             }
             QListWidget::item:selected:hover {
-                background-color: #45a049;
+                background-color: #007f76;
             }
             QTabWidget::pane {
                 border: 1px solid #555555;
@@ -149,7 +149,7 @@ class BaseDialog(QDialog):
                 background-color: transparent;
             }
             .event-action {
-                color: #4CAF50;
+                color: #00525f;
                 font-size: 12px;
                 text-decoration: underline;
                 padding: 4px 8px;
@@ -157,7 +157,7 @@ class BaseDialog(QDialog):
             }
             .event-action:hover {
                 color: #ffffff;
-                background-color: #4CAF50;
+                background-color: #00525f;
                 border-radius: 3px;
                 text-decoration: none;
             }

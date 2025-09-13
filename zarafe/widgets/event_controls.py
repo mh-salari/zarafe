@@ -2,6 +2,8 @@
 
 from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QListWidget, QPushButton, QVBoxLayout
 
+from ..utils.icon_loader import load_icon
+
 # Event control constants
 EVENTS_LIST_MAX_HEIGHT = 200
 STRETCH_FACTOR = 1
@@ -65,16 +67,20 @@ class EventControls:
 
         button_row1 = QHBoxLayout()
         self.parent.mark_start_btn = QPushButton("Mark Start")
+        self.parent.mark_start_btn.setIcon(load_icon("mark_start", 18))
         self.parent.mark_start_btn.clicked.connect(self.parent.mark_start)
         self.parent.mark_end_btn = QPushButton("Mark End")
+        self.parent.mark_end_btn.setIcon(load_icon("mark_end", 18))
         self.parent.mark_end_btn.clicked.connect(self.parent.mark_end)
         button_row1.addWidget(self.parent.mark_start_btn)
         button_row1.addWidget(self.parent.mark_end_btn)
 
         button_row2 = QHBoxLayout()
         self.parent.delete_event_btn = QPushButton("Delete Event")
+        self.parent.delete_event_btn.setIcon(load_icon("delete", 18))
         self.parent.delete_event_btn.clicked.connect(self.parent.delete_event)
         self.parent.save_events_btn = QPushButton("Save Events")
+        self.parent.save_events_btn.setIcon(load_icon("save", 18))
         self.parent.save_events_btn.clicked.connect(self.parent.save_events)
         button_row2.addWidget(self.parent.delete_event_btn)
         button_row2.addWidget(self.parent.save_events_btn)
