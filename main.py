@@ -6,6 +6,9 @@ import sys
 # Suppress Qt multimedia debug output - must be set before Qt imports
 os.environ["QT_LOGGING_RULES"] = "qt.multimedia*=false"
 
+# Patch ffmpeg module before any other imports that might use it
+from zarafe.utils import ffmpeg_compat  # noqa: F401 I001
+
 from PyQt6.QtWidgets import QApplication
 
 from zarafe.main_window import VideoAnnotator
