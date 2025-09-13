@@ -10,7 +10,7 @@ def natural_sort_key(s: str) -> list[int | str]:
 
 def event_sort_key(row: str) -> float:
     """Generate sort key for event rows, handling N.A. values."""
-    start_value = row[7]  # start_frame column
+    start_value = row[2]  # start_frame column
     if start_value == "N.A.":
         return float("inf")
     try:
