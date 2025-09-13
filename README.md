@@ -1,9 +1,9 @@
-# Zarafe <img src="resources/app_icon.ico" alt="zarafe" width="30" height="30">
+# Zarafe <img src="https://github.com/mh-salari/zarafe/raw/main/resources/app_icon.ico" alt="zarafe" width="30" height="30">
 
 Zarafe is a video annotation tool designed for marking time events in eye tracking videos with gaze data visualization.
 
 <p align="center">
-<img src="resources/app.png" alt="EyE Annotation Tool Main Page" width="800">
+<img src="https://github.com/mh-salari/zarafe/raw/main/resources/app.png" alt="EyE Annotation Tool Main Page" width="800">
 </p>
 
 ## Overview
@@ -82,7 +82,7 @@ Niehorster, D.C., Hessels, R.S., Benjamins, J.S., Nyström, M. and Hooge, I.T.C.
 This project has received funding from the European Union's Horizon Europe research and innovation funding program under grant agreement No 101072410, Eyes4ICU project.
 
 <p align="center">
-<img src="resources/Funded_by_EU_Eyes4ICU.png" alt="Funded by EU Eyes4ICU" width="500">
+<img src="https://github.com/mh-salari/zarafe/raw/main/resources/Funded_by_EU_Eyes4ICU.png" alt="Funded by EU Eyes4ICU" width="500">
 </p>
 
 Giraffe icon downloaded from <a href="https://www.flaticon.com/free-icons/giraffe" title="giraffe icons">Flaticon, created by smalllikeart</a>
