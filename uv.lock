@@ -1337,7 +1337,6 @@ name = "zarafe"
 source = { editable = "." }
 dependencies = [
     { name = "glassestools" },
-    { name = "matplotlib" },
     { name = "numpy" },
     { name = "opencv-python-headless" },
     { name = "pandas" },
@@ -1354,13 +1353,12 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "glassestools", specifier = "==1.23.1" },
-    { name = "matplotlib" },
-    { name = "numpy" },
-    { name = "opencv-python-headless" },
-    { name = "pandas" },
-    { name = "pyqt6" },
-    { name = "pyqtgraph", specifier = ">=0.13.3" },
+    { name = "numpy", specifier = ">=2.3.0" },
+    { name = "opencv-python-headless", specifier = ">=4.11.0" },
+    { name = "pandas", specifier = ">=2.3.0" },
+    { name = "pyqt6", specifier = ">=6.9.0" },
+    { name = "pyqtgraph", specifier = ">=0.13.7" },
     { name = "pytest", marker = "extra == 'dev'" },
-    { name = "scipy" },
+    { name = "scipy", specifier = ">=1.16.0" },
 ]
 provides-extras = ["dev"]

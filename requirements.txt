@@ -1,5 +1,0 @@
-opencv_python_headless==4.11.0
-pandas==2.2.3
-PyQt6==6.8.1
-matplotlib==3.9.2
-numpy==2.1.2

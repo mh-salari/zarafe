@@ -18,26 +18,47 @@ This tool allows users to:
 
 **Important**: Before using Zarafe, you need to convert your eye tracking data:
 
-1. First convert your raw eye tracking data using [glassesTools](https://github.com/dcnieho/glassesTools/tree/master/src/glassesTools)
-2. This will generate the required worldCamera.mp4 and gazeData.tsv files
+Zarafe uses [glassesValidator](https://github.com/dcnieho/glassesValidator) to import your eye tracking data. Some eye trackers require preprocessing before importing:
+
+- **Pupil Labs**: Export from Pupil/Neon Player (disable World Video Exporter) or Pupil Cloud
+- **Meta Project Aria Gen 1**: Process in Aria Studio with MPS eye gaze run, then use provided export script
+- **SMI ETG**: Export raw data and scene video from BeGaze with specific settings
+
+For detailed preprocessing instructions for your specific eye tracker, see the [glassesValidator preprocessing guide](https://github.com/dcnieho/glassesValidator?tab=readme-ov-file#eye-trackers).
+
+The import process will generate the required worldCamera.mp4 and gazeData.tsv files.
 
 Zarafe expects a specific directory structure with each recording in its own folder containing both files.
 
 ## Installation
 
 1. Clone this repository:
-   ```
+   ```bash
    git clone https://github.com/mh-salari/zarafe.git
    cd zarafe
    ```
 
-2. Install dependencies:
+2. Install dependencies (choose one method):
+
+   **Option A: Using uv (recommended)**
+   ```bash
+   # Install uv from https://docs.astral.sh/uv/getting-started/installation/
+
+   # Install dependencies
+   uv sync
    ```
-   pip install -r requirements.txt
+
+   **Option B: Using pip**
+   ```bash
+   pip install -e .
    ```
 
 3. Run the application:
-   ```
+   ```bash
+   # With uv
+   uv run python main.py
+
+   # With pip
    python main.py
    ```
 
@@ -51,6 +72,12 @@ Zarafe was developed by Mohammadhossein Salari with assistance from Claude 3.7 S
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
+
+
+Zarafe uses glassesValidator for data import. If you use this functionality, please cite:
+
+Niehorster, D.C., Hessels, R.S., Benjamins, J.S., Nyström, M. and Hooge, I.T.C. (2023). GlassesValidator: A data quality tool for eye tracking glasses. *Behavior Research Methods*. [doi: 10.3758/s13428-023-02105-5](https://doi.org/10.3758/s13428-023-02105-5)
+
 
 This project has received funding from the European Union's Horizon Europe research and innovation funding program under grant agreement No 101072410, Eyes4ICU project.
 
