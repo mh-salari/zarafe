@@ -23,11 +23,6 @@ class LeftPanel(QWidget):
         """Initialize the panel layout and widgets."""
         layout = QVBoxLayout(self)
 
-        # Import videos section
-        self.import_videos_btn = QPushButton("Import Videos")
-        self.import_videos_btn.hide()  # Hidden until project loads
-        layout.addWidget(self.import_videos_btn)
-
         # Navigation controls
         nav_layout = QHBoxLayout()
         self.prev_video_btn = QPushButton("Previous Video")
@@ -45,10 +40,6 @@ class LeftPanel(QWidget):
         """Connect internal widget signals."""
         # Signals will be connected to external controllers by the main window
 
-    def connect_import_callback(self, callback: object) -> None:
-        """Connect import videos callback."""
-        self.import_videos_btn.clicked.connect(callback)
-
     def connect_navigation_callbacks(self, prev_callback: object, next_callback: object) -> None:
         """Connect video navigation callbacks."""
         self.prev_video_btn.clicked.connect(prev_callback)
@@ -57,11 +48,3 @@ class LeftPanel(QWidget):
     def connect_video_selection_callback(self, callback: object) -> None:
         """Connect video selection callback."""
         self.video_list.itemClicked.connect(callback)
-
-    def show_import_button(self) -> None:
-        """Show import videos button when project is loaded."""
-        self.import_videos_btn.show()
-
-    def hide_import_button(self) -> None:
-        """Hide import videos button."""
-        self.import_videos_btn.hide()

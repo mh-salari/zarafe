@@ -78,7 +78,7 @@ class VideoAnnotator(QMainWindow):  # noqa: PLR0904
             self._initialize_config_components()
             self._setup_full_ui()
             self._load_project_videos()
-            self.left_panel.show_import_button()
+            self.menu_manager.enable_import_videos()
             self.menu_manager.enable_project_editing()
         else:
             self._setup_basic_ui()
@@ -93,14 +93,17 @@ class VideoAnnotator(QMainWindow):  # noqa: PLR0904
 
         # Setup menu bar using menu manager
         self.menu_manager.setup_menu_bar(
-            self.menuBar(), self._show_project_dialog, self._edit_current_project, self.show_about_dialog
+            self.menuBar(),
+            self._show_project_dialog,
+            self._edit_current_project,
+            self.import_videos,
+            self.show_about_dialog,
         )
 
         self.showMaximized()
 
     def _connect_ui_callbacks(self) -> None:
         """Connect UI component callbacks to controller methods."""
-        self.left_panel.connect_import_callback(self.import_videos)
         self.left_panel.connect_navigation_callbacks(self.prev_video, self.next_video)
         self.left_panel.connect_video_selection_callback(self.select_video)
 
@@ -375,7 +378,7 @@ class VideoAnnotator(QMainWindow):  # noqa: PLR0904
             self._setup_full_ui()
             self._load_project_videos()
 
-            self.left_panel.show_import_button()
+            self.menu_manager.enable_import_videos()
             self.menu_manager.enable_project_editing()
 
     def _edit_current_project(self) -> None:

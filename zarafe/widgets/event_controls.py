@@ -1,7 +1,5 @@
 """Event creation and management controls."""
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QListWidget, QPushButton, QVBoxLayout
 
 # Event control constants
@@ -42,10 +40,6 @@ class EventControls:
         event_section.addLayout(shortcuts_section)
 
         event_section.addStretch(STRETCH_FACTOR)
-
-        # About link
-        about_label = self.create_about_link()
-        event_section.addWidget(about_label)
 
         return event_section
 
@@ -111,14 +105,3 @@ class EventControls:
         shortcuts_layout.addWidget(shortcuts_text)
 
         return shortcuts_layout
-
-    def create_about_link(self) -> QLabel:
-        """Create clickable about link."""
-        about_label = QLabel("About")
-        about_label.setStyleSheet("color: white; text-decoration: underline;")
-        about_label.setAlignment(Qt.AlignmentFlag.AlignRight)
-        about_label.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        about_label.mousePressEvent = lambda event: (
-            self.parent.show_about_dialog() if event.button() == Qt.MouseButton.LeftButton else None
-        )
-        return about_label
