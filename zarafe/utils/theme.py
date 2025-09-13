@@ -3,7 +3,6 @@
 import os
 import platform
 
-
 from PyQt6.QtWidgets import QApplication
 
 
