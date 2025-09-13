@@ -8,6 +8,10 @@ from typing import Any
 from .event_type_registry import EventTypeRegistry
 
 
+# History management constants
+MAX_HISTORY_SIZE = 20
+
+
 class EventManager:
     """Manages annotation events and their persistence."""
 
@@ -20,12 +24,6 @@ class EventManager:
 
     def create_event(self, event_type: str) -> tuple[bool, str]:
         """Create new event of specified type. Returns (success, message)."""
-        # Check for duplicates
-        for i, event in enumerate(self.events):
-            if event["name"] == event_type:
-                self.selected_event = i
-                return False, f"{event_type} already exists. Please complete or delete it first."
-
         self.save_state()
         event = {"name": event_type, "start": -1, "end": -1}
         self.events.append(event)
@@ -64,20 +62,17 @@ class EventManager:
         if self.selected_event is None:
             return False, "Please select an event to delete."
 
-        if 0 <= self.selected_event < len(self.events):
-            self.save_state()
+        self.save_state()
 
-            deleted_name = self.events[self.selected_event]["name"]
-            self.events.pop(self.selected_event)
+        deleted_name = self.events[self.selected_event]["name"]
+        self.events.pop(self.selected_event)
 
-            if not self.events:
-                self.selected_event = None
-            elif self.selected_event >= len(self.events):
-                self.selected_event = len(self.events) - 1
+        if not self.events:
+            self.selected_event = None
+        elif self.selected_event >= len(self.events):
+            self.selected_event = len(self.events) - 1
 
-            return True, f"Deleted {deleted_name}"
-
-        return False, "Invalid event selection."
+        return True, f"Deleted {deleted_name}"
 
     def select_event(self, index: int) -> bool:
         """Select event by index."""
@@ -105,7 +100,7 @@ class EventManager:
         state_copy = [event.copy() for event in self.events]
         self.event_history.append(state_copy)
 
-        if len(self.event_history) > 20:
+        if len(self.event_history) > MAX_HISTORY_SIZE:
             self.event_history.pop(0)
 
     def undo(self) -> tuple[bool, str]:
@@ -125,12 +120,10 @@ class EventManager:
 
     def get_event_display_text(self, index: int) -> str:
         """Get display text for event at index."""
-        if 0 <= index < len(self.events):
-            event = self.events[index]
-            start_str = str(event["start"]) if event["start"] != -1 else "N/A"
-            end_str = str(event["end"]) if event["end"] != -1 else "N/A"
-            return f"{event['name']}: Start={start_str}, End={end_str}"
-        return ""
+        event = self.events[index]
+        start_str = str(event["start"]) if event["start"] != -1 else "N/A"
+        end_str = str(event["end"]) if event["end"] != -1 else "N/A"
+        return f"{event['name']}: Start={start_str}, End={end_str}"
 
     def save_to_csv(self, csv_path: Path, file_name: str) -> tuple[bool, str]:
         """Save events to CSV file."""
@@ -184,9 +177,6 @@ class EventManager:
 
                 for row in reader:
                     event_name = row.get("event_name", "")
-                    if not event_name:
-                        continue
-
                     start_frame = row.get("start_frame", "N.A.")
                     end_frame = row.get("end_frame", "N.A.")
 
@@ -262,9 +252,3 @@ class EventManager:
         self.events.clear()
         self.selected_event = None
         self.event_history.clear()
-
-    def _calculate_duration_seconds(self, event: dict, metadata_manager) -> float | None:
-        """Calculate duration in seconds for an event."""
-        # This would need access to FPS - we'll need to refactor this
-        # For now, return None as placeholder
-        return None
