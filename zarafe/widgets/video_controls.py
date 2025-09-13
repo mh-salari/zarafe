@@ -7,6 +7,13 @@ from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSlider, QVBoxLayo
 from .pupil_plot import PupilSizePlot
 
 
+# Control constants
+PUPIL_LABEL_FONT_SIZE = 12
+PUPIL_PLOT_MAX_HEIGHT = 120
+SLIDER_MAX_VALUE = 100
+MUTE_BUTTON_WIDTH = 40
+
+
 class VideoControls:
     """Video playback controls component."""
 
@@ -14,24 +21,23 @@ class VideoControls:
         self.parent = parent
 
     def setup_controls(self) -> QVBoxLayout:
-        """Create video controls layout."""
         control_layout = QVBoxLayout()
 
         # Pupil size plot
         pupil_label = QLabel("Pupil Diameter (mm)")
-        pupil_label.setStyleSheet("color: white; font-size: 12px; margin-bottom: 2px;")
+        pupil_label.setStyleSheet(f"color: white; font-size: {PUPIL_LABEL_FONT_SIZE}px; margin-bottom: 2px;")
         pupil_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         control_layout.addWidget(pupil_label)
 
         self.parent.pupil_plot = PupilSizePlot()
         if self.parent.pupil_plot:
-            self.parent.pupil_plot.setMaximumHeight(120)
+            self.parent.pupil_plot.setMaximumHeight(PUPIL_PLOT_MAX_HEIGHT)
             control_layout.addWidget(self.parent.pupil_plot)
 
         # Timeline slider
         self.parent.timeline_slider = QSlider(Qt.Orientation.Horizontal)
         self.parent.timeline_slider.setMinimum(0)
-        self.parent.timeline_slider.setMaximum(100)
+        self.parent.timeline_slider.setMaximum(SLIDER_MAX_VALUE)
         self.parent.timeline_slider.valueChanged.connect(self.parent.slider_moved)
         control_layout.addWidget(self.parent.timeline_slider)
 
@@ -42,7 +48,6 @@ class VideoControls:
         return control_layout
 
     def create_playback_buttons(self) -> QHBoxLayout:
-        """Create playback button layout."""
         playback_layout = QHBoxLayout()
 
         self.parent.play_btn = QPushButton("Play")
@@ -55,7 +60,7 @@ class VideoControls:
         # Mute button
         self.parent.mute_btn = QPushButton("🔊")
         self.parent.mute_btn.clicked.connect(self.parent.toggle_mute)
-        self.parent.mute_btn.setMaximumWidth(40)
+        self.parent.mute_btn.setMaximumWidth(MUTE_BUTTON_WIDTH)
 
         self.parent.frame_info = QLabel("Frame: 0 / 0")
 

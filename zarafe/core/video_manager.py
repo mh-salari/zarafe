@@ -1,8 +1,8 @@
 """Video playback and management."""
 
 import cv2
-from PyQt6.QtCore import QTimer
 
+from PyQt6.QtCore import QTimer
 
 from .audio_manager import AudioManager
 
@@ -14,7 +14,7 @@ class VideoManager:
         self.cap: cv2.VideoCapture | None = None
         self.current_frame = 0
         self.total_frames = 0
-        self.fps = 30
+        self.fps = 0.0
         self.playing = False
         self.last_frame_read = -1
 
@@ -24,9 +24,7 @@ class VideoManager:
 
     def load_video(self, video_path: str) -> bool:
         """Load a video file."""
-        if self.cap is not None:
-            self.cap.release()
-            self.timer.stop()
+        self.release()
 
         self.cap = cv2.VideoCapture(video_path)
 
@@ -39,16 +37,12 @@ class VideoManager:
         self.last_frame_read = -1
         self.playing = False
 
-        # Load audio for this video
         self.audio_manager.load_video(video_path)
 
         return True
 
     def read_frame(self) -> tuple[bool, any]:
         """Read the current frame, optimizing for sequential reads."""
-        if self.cap is None or not self.cap.isOpened():
-            return False, None
-
         if self.current_frame != self.last_frame_read + 1:
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame)
 
@@ -74,20 +68,16 @@ class VideoManager:
 
     def jump_frames(self, offset: int) -> None:
         """Jump by offset frames."""
-        target_frame = max(0, min(self.current_frame + offset, self.total_frames - 1))
-        if target_frame != self.current_frame:
-            self.current_frame = target_frame
-            self.last_frame_read = -1
+        self.current_frame = max(0, min(self.current_frame + offset, self.total_frames - 1))
+        self.last_frame_read = -1
 
     def set_frame(self, frame_number: int) -> None:
         """Set current frame to specific number."""
         self.current_frame = max(0, min(frame_number, self.total_frames - 1))
         self.last_frame_read = -1
 
-        # Sync audio to current frame position
-        if self.fps > 0:
-            position_ms = int((self.current_frame / self.fps) * 1000)
-            self.audio_manager.set_position(position_ms)
+        position_ms = int((self.current_frame / self.fps) * 1000)
+        self.audio_manager.set_position(position_ms)
 
     def toggle_playback(self) -> bool:
         """Toggle play/pause state."""
@@ -96,18 +86,16 @@ class VideoManager:
 
     def start_playback(self, frame_callback) -> None:
         """Start playback with callback."""
-        if self.playing and self.cap is not None:
-            # Only connect if not already connected or callback changed
+        if self.playing:
             if self.frame_callback != frame_callback:
                 if self.frame_callback is not None:
                     self.timer.timeout.disconnect()
                 self.timer.timeout.connect(frame_callback)
                 self.frame_callback = frame_callback
 
-            interval = int(1000 / self.fps) if self.fps > 0 else 33
+            interval = int(1000 / self.fps)
             self.timer.start(interval)
 
-            # Start audio playback
             self.audio_manager.play()
 
     def stop_playback(self) -> None:
@@ -115,12 +103,11 @@ class VideoManager:
         self.timer.stop()
         self.playing = False
 
-        # Pause audio playback
         self.audio_manager.pause()
 
     def calculate_duration(self, start_frame: int, end_frame: int) -> float | None:
         """Calculate duration in seconds from frame numbers."""
-        if start_frame == -1 or end_frame == -1 or self.fps == 0:
+        if start_frame == -1 or end_frame == -1:
             return None
         return round((end_frame - start_frame + 1) / self.fps, 1)
 
@@ -131,5 +118,4 @@ class VideoManager:
             self.cap = None
         self.timer.stop()
 
-        # Clean up audio resources
         self.audio_manager.cleanup()

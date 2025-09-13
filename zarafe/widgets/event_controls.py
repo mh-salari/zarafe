@@ -5,6 +5,12 @@ from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QListWidget, QPushButton, QVBoxLayout
 
 
+# Event control constants
+EVENTS_LIST_MAX_HEIGHT = 200
+STRETCH_FACTOR = 1
+SHORTCUTS_FONT_SIZE = 11
+
+
 class EventControls:
     """Event management controls component."""
 
@@ -12,7 +18,6 @@ class EventControls:
         self.parent = parent
 
     def create_event_section(self) -> QVBoxLayout:
-        """Create complete event management section."""
         event_section = QVBoxLayout()
 
         # Event creation
@@ -22,7 +27,7 @@ class EventControls:
         # Events list
         event_section.addWidget(QLabel("Events:"))
         self.parent.events_list = QListWidget()
-        self.parent.events_list.setMaximumHeight(200)
+        self.parent.events_list.setMaximumHeight(EVENTS_LIST_MAX_HEIGHT)
         self.parent.events_list.itemClicked.connect(self.parent.select_event)
         self.parent.events_list.itemDoubleClicked.connect(self.parent.jump_to_event)
         event_section.addWidget(self.parent.events_list)
@@ -35,7 +40,7 @@ class EventControls:
         shortcuts_section = self.create_shortcuts_info()
         event_section.addLayout(shortcuts_section)
 
-        event_section.addStretch(1)
+        event_section.addStretch(STRETCH_FACTOR)
 
         # About link
         about_label = self.create_about_link()
@@ -44,7 +49,6 @@ class EventControls:
         return event_section
 
     def create_event_creation(self) -> QVBoxLayout:
-        """Create event creation controls."""
         event_creation_layout = QVBoxLayout()
         event_creation_layout.addWidget(QLabel("Create Event:"))
 
@@ -60,7 +64,6 @@ class EventControls:
         return event_creation_layout
 
     def create_event_controls(self) -> QVBoxLayout:
-        """Create event management controls."""
         event_controls = QVBoxLayout()
 
         button_row1 = QHBoxLayout()
@@ -85,7 +88,6 @@ class EventControls:
         return event_controls
 
     def create_shortcuts_info(self) -> QVBoxLayout:
-        """Create keyboard shortcuts information."""
         shortcuts_layout = QVBoxLayout()
 
         shortcuts_label = QLabel("<h4>Keyboard Shortcuts</h4>")
@@ -98,7 +100,7 @@ class EventControls:
             "• <b>Ctrl+S</b>: Save Events<br>"
             "• <b>Ctrl+Z</b>: Undo"
         )
-        shortcuts_text.setStyleSheet("color: white; font-size: 11px;")
+        shortcuts_text.setStyleSheet(f"color: white; font-size: {SHORTCUTS_FONT_SIZE}px;")
 
         shortcuts_layout.addWidget(shortcuts_label)
         shortcuts_layout.addWidget(shortcuts_text)
@@ -106,7 +108,6 @@ class EventControls:
         return shortcuts_layout
 
     def create_about_link(self) -> QLabel:
-        """Create about dialog link."""
         about_label = QLabel("About")
         about_label.setStyleSheet("color: white; text-decoration: underline;")
         about_label.setAlignment(Qt.AlignmentFlag.AlignRight)
