@@ -24,11 +24,25 @@ from .base_dialog import BaseDialog
 from .new_project_dialog import NewProjectDialog
 
 
+# Dialog constants
+DIALOG_SIZE = (600, 500)
+BUTTON_MIN_HEIGHT = 40
+MAX_RECENT_PROJECTS = 10
+BROWSE_TAB_INDEX = 1
+
+# CSS styling constants
+DEFAULT_LABEL_STYLE = (
+    "QLabel { background-color: #1e1e1e; padding: 10px; border-radius: 4px; border: 1px solid #555555; }"
+)
+ERROR_LABEL_STYLE = "QLabel { background-color: #3c1e1e; color: #ffaaaa; padding: 10px; border-radius: 4px; border: 1px solid #aa5555; }"
+SUCCESS_LABEL_STYLE = "QLabel { background-color: #1e3c1e; color: #aaffaa; padding: 10px; border-radius: 4px; border: 1px solid #55aa55; }"
+
+
 class ProjectDialog(BaseDialog):
     """Dialog for selecting and opening eye tracking projects."""
 
     def __init__(self, parent=None):
-        super().__init__(parent, "Zarafe - Select Project", (600, 500), True)
+        super().__init__(parent, "Zarafe - Select Project", DIALOG_SIZE, True)
         self.selected_project_path = None
         self.project_config = None
         self.settings = QSettings("Zarafe", "ProjectDialog")
@@ -67,14 +81,12 @@ class ProjectDialog(BaseDialog):
 
         browse_btn = QPushButton("Browse for Project Directory")
         browse_btn.clicked.connect(self.browse_project)
-        browse_btn.setMinimumHeight(40)
+        browse_btn.setMinimumHeight(BUTTON_MIN_HEIGHT)
         browse_layout.addWidget(browse_btn)
 
         # Selected path display
         self.path_label = QLabel("No project selected")
-        self.path_label.setStyleSheet(
-            "QLabel { background-color: #1e1e1e; padding: 10px; border-radius: 4px; border: 1px solid #555555; }"
-        )
+        self.path_label.setStyleSheet(DEFAULT_LABEL_STYLE)
         self.path_label.setWordWrap(True)
         browse_layout.addWidget(self.path_label)
 
@@ -95,7 +107,7 @@ class ProjectDialog(BaseDialog):
 
         new_project_btn = QPushButton("Create New Project")
         new_project_btn.clicked.connect(self.create_new_project)
-        new_project_btn.setMinimumHeight(40)
+        new_project_btn.setMinimumHeight(BUTTON_MIN_HEIGHT)
         new_layout.addWidget(new_project_btn)
 
         new_layout.addStretch()
@@ -139,9 +151,7 @@ class ProjectDialog(BaseDialog):
         config_path = project_path / "zarafe_config.json"
         if not config_path.exists():
             self.info_label.setText("Error: No zarafe_config.json found in this directory")
-            self.path_label.setStyleSheet(
-                "QLabel { background-color: #3c1e1e; color: #ffaaaa; padding: 10px; border-radius: 4px; border: 1px solid #aa5555; }"
-            )
+            self.path_label.setStyleSheet(ERROR_LABEL_STYLE)
             self.edit_btn.setEnabled(False)
             self.open_btn.setEnabled(False)
             return
@@ -158,9 +168,7 @@ class ProjectDialog(BaseDialog):
             self.info_label.setText(f"Valid project: {project_name}\nFound {video_count} video recording(s)")
 
             # Highlight successful selection
-            self.path_label.setStyleSheet(
-                "QLabel { background-color: #1e3c1e; color: #aaffaa; padding: 10px; border-radius: 4px; border: 1px solid #55aa55; }"
-            )
+            self.path_label.setStyleSheet(SUCCESS_LABEL_STYLE)
 
             self.selected_project_path = project_path
             self.project_config = config
@@ -169,9 +177,7 @@ class ProjectDialog(BaseDialog):
 
         except Exception as e:
             self.info_label.setText(f"Error: Invalid configuration file:\n{str(e)}")
-            self.path_label.setStyleSheet(
-                "QLabel { background-color: #3c1e1e; color: #ffaaaa; padding: 10px; border-radius: 4px; border: 1px solid #aa5555; }"
-            )
+            self.path_label.setStyleSheet(ERROR_LABEL_STYLE)
             self.edit_btn.setEnabled(False)
             self.open_btn.setEnabled(False)
 
@@ -224,8 +230,8 @@ class ProjectDialog(BaseDialog):
         # Add to beginning
         recent_projects.insert(0, {"path": str(project_path), "name": project_name})
 
-        # Keep only last 10 projects
-        recent_projects = recent_projects[:10]
+        # Keep only last projects
+        recent_projects = recent_projects[:MAX_RECENT_PROJECTS]
 
         self.settings.setValue("recent_projects", recent_projects)
 
@@ -249,7 +255,7 @@ class ProjectDialog(BaseDialog):
                 # Load and validate the newly created project
                 self.validate_project(project_path)
                 # Switch to browse tab to show the project info
-                self.tab_widget.setCurrentIndex(1)  # Browse tab index
+                self.tab_widget.setCurrentIndex(BROWSE_TAB_INDEX)
                 # Automatically accept to open the new project
                 self.accept()
 

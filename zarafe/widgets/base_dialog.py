@@ -8,10 +8,20 @@ from PyQt6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayo
 from ..utils.file_utils import get_resource_path
 
 
+# Dialog constants
+DEFAULT_DIALOG_SIZE = (600, 500)
+DEFAULT_LAYOUT_SPACING = 15
+DEFAULT_LAYOUT_MARGINS = (20, 20, 20, 20)
+DEFAULT_TITLE_FONT_SIZE = 16
+BUTTON_MIN_HEIGHT = 40
+
+
 class BaseDialog(QDialog):
     """Base class for Zarafe dialogs with consistent styling and common setup."""
 
-    def __init__(self, parent=None, title: str = "Zarafe", size: tuple[int, int] = (600, 500), modal: bool = True):
+    def __init__(
+        self, parent=None, title: str = "Zarafe", size: tuple[int, int] = DEFAULT_DIALOG_SIZE, modal: bool = True
+    ):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setFixedSize(*size)
@@ -19,8 +29,7 @@ class BaseDialog(QDialog):
 
         # Set application icon
         icon_path = get_resource_path("app_icon.ico")
-        if icon_path.exists():
-            self.setWindowIcon(QIcon(str(icon_path)))
+        self.setWindowIcon(QIcon(str(icon_path)))
 
         # Apply consistent dark theme
         self._apply_dark_theme()
@@ -152,7 +161,7 @@ class BaseDialog(QDialog):
         """)
 
     def create_main_layout(
-        self, spacing: int = 15, margins: tuple[int, int, int, int] = (20, 20, 20, 20)
+        self, spacing: int = DEFAULT_LAYOUT_SPACING, margins: tuple[int, int, int, int] = DEFAULT_LAYOUT_MARGINS
     ) -> QVBoxLayout:
         """Create and return the main layout for the dialog."""
         layout = QVBoxLayout(self)
@@ -160,7 +169,7 @@ class BaseDialog(QDialog):
         layout.setContentsMargins(*margins)
         return layout
 
-    def create_title_label(self, title_text: str, font_size: int = 16) -> QLabel:
+    def create_title_label(self, title_text: str, font_size: int = DEFAULT_TITLE_FONT_SIZE) -> QLabel:
         """Create a styled title label."""
         title = QLabel(title_text)
         title_font = QFont()
@@ -187,7 +196,7 @@ class BaseDialog(QDialog):
         for i, (text, callback) in enumerate(buttons):
             btn = QPushButton(text)
             btn.clicked.connect(callback)
-            btn.setMinimumHeight(40)
+            btn.setMinimumHeight(BUTTON_MIN_HEIGHT)
 
             if i == primary_button_idx:
                 btn.setObjectName("primaryBtn")
