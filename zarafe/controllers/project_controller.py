@@ -63,9 +63,10 @@ class ProjectController:
         if not video_dirs:
             return []
 
-        # Extract video paths and display names from tuples
+        video_dirs.sort(key=lambda item: natural_sort_key(item[1]))
+
+        # Extract video paths and display names from the sorted list
         self.video_paths = [video_path for video_path, _ in video_dirs]
-        self.video_paths.sort(key=natural_sort_key)
 
         video_list.clear()
         for _, display_name in video_dirs:

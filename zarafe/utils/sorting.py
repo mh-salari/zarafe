@@ -5,7 +5,7 @@ import re
 
 def natural_sort_key(s: str) -> list[int | str]:
     """Generate sort key for natural ordering of strings with numbers."""
-    return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", s[0])]
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", s)]
 
 
 def event_sort_key(row: str) -> float:
