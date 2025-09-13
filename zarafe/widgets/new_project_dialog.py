@@ -160,7 +160,7 @@ class NewProjectDialog(BaseDialog):
         layout.addWidget(scroll_area)
 
         # Buttons - text depends on create vs edit mode
-        button_text = "Save Project" if self.existing_project_path else "Create Project Configuration"
+        button_text = "Save" if self.existing_project_path else "Create Project Configuration"
         button_layout, buttons = self.create_button_layout(
             ("Cancel", self.close), (button_text, self.save_project), primary_button_idx=1
         )

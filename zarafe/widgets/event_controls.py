@@ -55,7 +55,7 @@ class EventControls:
         self.parent.event_type_combo.addItems(self.parent.event_manager.event_types)
         event_creation_layout.addWidget(self.parent.event_type_combo)
 
-        self.parent.create_event_btn = QPushButton("Create Selected Event")
+        self.parent.create_event_btn = QPushButton("Add Selected Event")
         self.parent.create_event_btn.clicked.connect(self.parent.create_event)
         event_creation_layout.addWidget(self.parent.create_event_btn)
 
