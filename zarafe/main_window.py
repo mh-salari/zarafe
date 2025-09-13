@@ -245,7 +245,7 @@ class VideoAnnotator(QMainWindow):
             QMessageBox.warning(self, "Event Exists", message)
 
         self.event_type_combo.setCurrentIndex(0)
-        self.has_unsaved_changes = True
+        self.main_controller.mark_unsaved_changes()
         self.update_event_list()
         self.update_pupil_plot()
 
@@ -290,7 +290,7 @@ class VideoAnnotator(QMainWindow):
             QMessageBox.warning(self, "Warning", message)
             return
 
-        self.has_unsaved_changes = True
+        self.main_controller.mark_unsaved_changes()
         self.update_event_list()
         self.update_pupil_plot()
 
@@ -313,21 +313,24 @@ class VideoAnnotator(QMainWindow):
         """Undo last action."""
         success, _ = self.event_manager.undo()
         if success:
-            self.has_unsaved_changes = len(self.event_manager.events) > 0
+            if len(self.event_manager.events) > 0:
+                self.main_controller.mark_unsaved_changes()
             self.update_event_list()
             self.update_pupil_plot()
 
     def save_events(self) -> None:
         """Save events to file."""
-        if not self.video_manager.cap or self.current_video_index < 0:
+        current_index = self.video_nav_controller.get_current_index()
+        if not self.video_manager.cap or current_index < 0:
             return
 
-        video_dir = Path(self.video_paths[self.current_video_index]).parent
+        video_paths = self.project_controller.get_video_paths()
+        video_dir = Path(video_paths[current_index]).parent
         csv_path = video_dir / "events.csv"
 
-        success, message = self.event_manager.save_to_csv(csv_path, self.current_file_name)
+        success, message = self.event_manager.save_to_csv(csv_path, self.main_controller.current_file_name)
         if success:
-            self.has_unsaved_changes = False
+            self.main_controller.has_unsaved_changes = False
             self.event_manager.save_marker_intervals(video_dir)
             QMessageBox.information(self, "Success", message)
         else:
