@@ -1,5 +1,6 @@
 """Handles importing of eye-tracking data using glassesTools."""
 
+import logging
 from pathlib import Path
 
 import glassesTools.eyetracker
@@ -8,6 +9,8 @@ import pathvalidate
 from glassesTools.recording import Recording
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QMessageBox, QProgressDialog
+
+logger = logging.getLogger(__name__)
 
 
 def make_fs_dirname(rec_info: Recording, output_dir: Path | None = None) -> str:
@@ -73,6 +76,10 @@ def _import_single_recording(
     try:
         rec_info.working_directory = project_path / make_fs_dirname(rec_info, project_path)
 
+        if rec_info.working_directory.exists():
+            logger.info("Recording directory '%s' already exists, skipping import.", rec_info.working_directory)
+            return 2  # Skipped
+
         glassesTools.importing.do_import(
             output_dir=None,  # Not needed when rec_info.working_directory is set
             source_dir=rec_source_dir,
@@ -80,9 +87,10 @@ def _import_single_recording(
             rec_info=rec_info,
             copy_scene_video=True,
         )
-        return True
-    except Exception:
-        return False
+        return 1  # Imported
+    except Exception:  # Removed 'as e' as it's redundant with logger.exception
+        logger.exception("Failed to import recording %s:", rec_info.name)
+        return 0  # Failed
 
 
 def import_recordings(
@@ -125,17 +133,22 @@ def import_recordings(
     progress.show()
 
     successfully_imported = 0
+    skipped_recordings = 0
+    failed_recordings = 0
     for i, (rec_info, rec_source_dir) in enumerate(all_recordings_to_import):
         if progress.wasCanceled():
             break
-
         progress.setLabelText(f"Importing {rec_info.name} from {rec_source_dir.name}...")
         progress.setValue(i)
         QApplication.processEvents()
 
-        if _import_single_recording(rec_info, rec_source_dir, project_path, device):
+        import_status = _import_single_recording(rec_info, rec_source_dir, project_path, device)
+        if import_status == 1:
             successfully_imported += 1
-        else:
+        elif import_status == 2:
+            skipped_recordings += 1
+        else:  # import_status == 0
+            failed_recordings += 1
             QMessageBox.warning(
                 parent_widget,
                 "Import Error",
@@ -144,5 +157,18 @@ def import_recordings(
 
     progress.setValue(len(all_recordings_to_import))
     progress.close()
+
+    # Display summary message
+    summary_message = f"Import complete.\nSuccessfully imported: {successfully_imported}"
+    if skipped_recordings > 0:
+        summary_message += f"\nSkipped (already existed): {skipped_recordings}"
+    if failed_recordings > 0:
+        summary_message += f"\nFailed: {failed_recordings}"
+
+    QMessageBox.information(
+        parent_widget,
+        "Import Summary",
+        summary_message,
+    )
 
     return successfully_imported

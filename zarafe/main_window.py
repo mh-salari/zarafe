@@ -388,11 +388,6 @@ class VideoAnnotator(QMainWindow):  # noqa: PLR0904
 
         if successfully_imported > 0:
             self._load_project_videos()
-            QMessageBox.information(
-                self,
-                "Import Complete",
-                f"Successfully imported {successfully_imported} recordings.",
-            )
 
     def _show_project_dialog(self) -> None:
         """Show project selection dialog using project controller."""
