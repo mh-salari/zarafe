@@ -32,6 +32,17 @@ Zarafe expects a specific directory structure with each recording in its own fol
 
 ## Installation
 
+**Requirements**: Python ≥3.9 (tested on Python 3.9-3.12)
+
+### Option 1: Install from PyPI (Recommended)
+
+```bash
+pip install zarafe
+zarafe
+```
+
+### Option 2: Install from Source
+
 1. Clone this repository:
    ```bash
    git clone https://github.com/mh-salari/zarafe.git
@@ -64,7 +75,9 @@ Zarafe expects a specific directory structure with each recording in its own fol
 
 ## Notes
 
-Zarafe was developed by Mohammadhossein Salari with assistance from Claude 3.7 Sonnet, an AI assistant developed by Anthropic. Please be aware that this software is primarily for internal purposes and is not thoroughly documented. 
+Zarafe is developed by Mohammadhossein Salari with assistance from Claude 3.7 Sonnet and Claude Sonnet 4, AI assistants developed by Anthropic.
+
+**Important Disclaimer**: This software ships as-is and was developed as part of my PhD project to serve personal research needs. Please make a complete backup of your data before using this tool. Use at your own risk. 
 
 
 ## License
