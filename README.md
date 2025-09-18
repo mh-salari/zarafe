@@ -1,18 +1,30 @@
 # Zarafe <img src="https://github.com/mh-salari/zarafe/raw/main/resources/app_icon.ico" alt="zarafe" width="30" height="30">
 
-Zarafe is a video annotation tool designed for marking time events in eye tracking videos with gaze data visualization.
+Zarafe is an open-source video annotation tool that unifies time-based event marking across different head-mounted eye trackers through a single, easy-to-use interface.
 
 <p align="center">
 <img src="https://github.com/mh-salari/zarafe/raw/main/resources/app.png" alt="EyE Annotation Tool Main Page" width="800">
 </p>
 
-## Overview
+## Why Zarafe?
+
+Working with different head-mounted eye trackers means dealing with multiple proprietary software tools for annotation. This creates several challenges:
+
+- **Multiple software learning curves**: Each eye tracker requires learning different annotation software
+- **Licensing barriers**: Proprietary tools require licenses and may not be readily available
+- **Training overhead**: Domain experts (like surgeons) need training on multiple platforms
+- **Fragmented workflows**: Inconsistent annotation formats across different devices
+
+Zarafe solves these problems by providing a unified annotation platform that works with different eye trackers.
+
+## Features
 
 This tool allows users to:
 - Load directories containing worldCamera.mp4 recordings and gazeData.tsv files
 - View eye tracking videos with gaze position overlays
 - Create, mark and manage time-based event annotations
 - Save annotations to CSV files for further analysis
+- Work with data from any supported eye tracker through a single interface
 
 ## Data Preparation
 
