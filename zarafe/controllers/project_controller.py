@@ -90,7 +90,7 @@ class ProjectController:
             return 0
 
         # Create a dialog to select the eye tracker
-        device_names = [d.value for d in glassesTools.eyetracker.EyeTracker]
+        device_names = [d.value for d in glassesTools.eyetracker.EyeTracker if d.value.lower() != "unknown"]
         device_name, ok = QInputDialog.getItem(
             parent_widget,
             "Select Eye Tracker",
