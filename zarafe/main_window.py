@@ -33,7 +33,7 @@ from .widgets.video_display import VideoDisplay
 
 # UI Constants
 PANEL_SIZES = [200, 600, 300]  # Left, center, right panel widths
-JUMP_FRAMES = 10  # Frame jump amount for keyboard shortcuts
+JUMP_FRAMES = 50  # Frame jump amount for keyboard shortcuts
 
 
 class VideoAnnotator(QMainWindow):  # noqa: PLR0904

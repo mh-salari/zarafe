@@ -105,19 +105,58 @@ class ProjectController:
 
         selected_device = glassesTools.eyetracker.EyeTracker(device_name)
 
-        source_dir_str = QFileDialog.getExistingDirectory(
-            parent_widget, "Select Eye Tracker Recording Directory", str(Path.home())
-        )
-        if not source_dir_str:
-            return 0
+        # For Aria, allow selecting VRS files or directory; for others, select directory
+        specific_files = None
+        if selected_device.value == "Meta Aria Gen 1":
+            # Ask user how they want to import
+            choice, ok = QInputDialog.getItem(
+                parent_widget,
+                "Aria Import Method",
+                "How would you like to import?",
+                ["Select specific VRS file(s)", "Import all from directory"],
+                0,
+                False
+            )
+            if not ok:
+                return 0
 
-        source_dir = Path(source_dir_str)
+            if choice == "Select specific VRS file(s)":
+                # Select specific VRS files
+                vrs_files, _ = QFileDialog.getOpenFileNames(
+                    parent_widget,
+                    "Select Aria VRS Recording(s)",
+                    str(Path.home()),
+                    "VRS Files (*.vrs);;All Files (*)"
+                )
+                if not vrs_files:
+                    return 0
+
+                # Convert to Path objects
+                specific_files = [Path(f) for f in vrs_files]
+                # Use the parent directory of the first VRS file as source_dir
+                source_dir = specific_files[0].parent
+            else:
+                # Import all from directory
+                source_dir_str = QFileDialog.getExistingDirectory(
+                    parent_widget, "Select Directory Containing VRS Files", str(Path.home())
+                )
+                if not source_dir_str:
+                    return 0
+                source_dir = Path(source_dir_str)
+        else:
+            source_dir_str = QFileDialog.getExistingDirectory(
+                parent_widget, "Select Eye Tracker Recording Directory", str(Path.home())
+            )
+            if not source_dir_str:
+                return 0
+            source_dir = Path(source_dir_str)
 
         successfully_imported = import_recordings(
             source_dir=source_dir,
             project_path=self.project_path,
             device=selected_device,
             parent_widget=parent_widget,
+            specific_files=specific_files,
         )
 
         return successfully_imported
