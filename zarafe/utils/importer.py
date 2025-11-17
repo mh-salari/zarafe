@@ -33,9 +33,9 @@ def make_fs_dirname(rec_info: Recording | aria_importer.AriaRecording, output_di
         eye_tracker_value = rec_info.eye_tracker.value
 
     if rec_info.participant:
-        dirname = f"{eye_tracker_value}_{rec_info.participant}_{rec_info.name}"
+        dirname = f"{eye_tracker_value} {rec_info.participant}_{rec_info.name}"
     else:
-        dirname = f"{eye_tracker_value}_{rec_info.name}"
+        dirname = f"{eye_tracker_value} {rec_info.name}"
 
     # make sure its a valid path
     dirname = pathvalidate.sanitize_filename(dirname)
