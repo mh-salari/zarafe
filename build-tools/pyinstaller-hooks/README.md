@@ -9,6 +9,11 @@ This directory contains custom PyInstaller hooks and build configuration for cre
 uv run pyinstaller --onedir --windowed --name Zarafe --icon=resources/app_icon.icns --add-data "resources:resources" --additional-hooks-dir build-tools/pyinstaller-hooks --runtime-hook build-tools/pyinstaller-hooks/pyi_rth_ffmpeg.py main.py
 ```
 
+or
+```bash
+uv run pyinstaller zarafe.spec --clean
+```
+
 **Note**: This requires the custom PyInstaller hook files:
 - `hook-ffmpeg.py` - Collects ffmpeg package data files
 - `pyi_rth_ffmpeg.py` - Runtime hook that creates the ffmpeg module with add_to_path functionality
