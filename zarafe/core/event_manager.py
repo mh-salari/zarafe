@@ -119,11 +119,25 @@ class EventManager:
         return True, "Undid last action"
 
     def get_event_display_text(self, index: int) -> str:
-        """Get display text for event at index."""
+        """Get display text for event at index with aligned columns."""
         event = self.events[index]
         start_str = str(event["start"]) if event["start"] != -1 else "N/A"
         end_str = str(event["end"]) if event["end"] != -1 else "N/A"
-        return f"{event['name']}: Start={start_str}, End={end_str}"
+
+        # Calculate total frames (duration calculation needs +1)
+        total_frames = event["end"] - event["start"] + 1 if event["start"] != -1 and event["end"] != -1 else "N/A"
+
+        # Calculate max widths across all events for alignment
+        max_name_len = max(len(e["name"]) for e in self.events)
+        max_start_len = max(len(str(e["start"])) if e["start"] != -1 else 3 for e in self.events)
+        max_end_len = max(len(str(e["end"])) if e["end"] != -1 else 3 for e in self.events)
+
+        # Build aligned display string (requires monospace font in UI)
+        name = f"{event['name']}:".ljust(max_name_len + 1)
+        start = f"Start={start_str.rjust(max_start_len)}"
+        end = f"End={end_str.rjust(max_end_len)}"
+
+        return f"{name}  {start}  {end}  [Total: {total_frames}]"
 
     def save_to_csv(self, csv_path: Path, file_name: str) -> tuple[bool, str]:
         """Save events to CSV file."""

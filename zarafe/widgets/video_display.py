@@ -84,11 +84,11 @@ class VideoDisplay:
         # Update frame info
         current_frame = self.parent.video_manager.current_frame
         total_frames = self.parent.video_manager.total_frames
-        self.parent.frame_info.setText(f"Frame: {current_frame + 1} / {total_frames}")
+        self.parent.frame_info.setText(f"Frame: {current_frame} / {total_frames - 1}")
 
     def check_frame_in_event(self) -> tuple[bool, tuple[int, int, int] | None, dict | None]:
         """Check if current frame is within an event."""
-        current_frame = self.parent.video_manager.current_frame + 1
+        current_frame = self.parent.video_manager.current_frame
 
         for event in self.parent.event_manager.events:
             if event["start"] != -1 and event["end"] != -1 and event["start"] <= current_frame <= event["end"]:

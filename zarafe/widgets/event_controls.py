@@ -1,5 +1,6 @@
 """Event creation and management controls."""
 
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QListWidget, QPushButton, QVBoxLayout
 
 from ..utils.icon_loader import load_icon
@@ -29,6 +30,12 @@ class EventControls:
         event_section.addWidget(QLabel("Events:"))
         self.parent.events_list = QListWidget()
         self.parent.events_list.setMaximumHeight(EVENTS_LIST_MAX_HEIGHT)
+
+        # Set monospace font for proper alignment
+        mono_font = QFont("Courier New, monospace")
+        mono_font.setStyleHint(QFont.StyleHint.Monospace)
+        self.parent.events_list.setFont(mono_font)
+
         self.parent.events_list.itemClicked.connect(self.parent.select_event)
         self.parent.events_list.itemDoubleClicked.connect(self.parent.jump_to_event)
         event_section.addWidget(self.parent.events_list)
