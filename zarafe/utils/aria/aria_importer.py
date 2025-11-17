@@ -13,6 +13,7 @@ from .aria_vrs_exporter import (
     export_camera_video,
     export_gaze_data_and_calibration,
     export_imu_data,
+    export_local_gaze_data,
     export_metadata,
     print_camera_timing_info,
 )
@@ -70,12 +71,12 @@ def discover_aria_recordings(search_dir: Path) -> list[AriaRecording]:
                 if not local_gaze_csv.exists():
                     local_gaze_csv = None
                 else:
-                    logger.info(f"Found local gaze CSV: {local_gaze_csv.name}")
+                    logger.info("Found local gaze CSV: %s", local_gaze_csv.name)
 
                 recordings.append(AriaRecording(vrs_file, local_gaze_csv_path=local_gaze_csv))
-                logger.info(f"Found Aria recording: {vrs_file.name}")
+                logger.info("Found Aria recording: %s", vrs_file.name)
         except Exception as e:
-            logger.warning(f"Failed to open VRS file {vrs_file}: {e}")
+            logger.warning("Failed to open VRS file %s: %s", vrs_file, e)
             continue
 
     return recordings
@@ -94,14 +95,18 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
 
     """
 
-    def check_cancelled():
+    def check_cancelled() -> bool:
         """Check if user cancelled and process events."""
         if progress_dialog:
             QApplication.processEvents()
             if progress_dialog.wasCanceled():
-                logger.info(f"Import of {rec.name} cancelled by user")
+                logger.info("Import of %s cancelled by user", rec.name)
                 return True
         return False
+
+    def raise_provider_error() -> None:
+        """Raise error for failed VRS data provider creation."""
+        raise RuntimeError(f"Failed to create VRS data provider for {rec.source_path}")
 
     try:
         # Create output directory
@@ -119,10 +124,10 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
         }
 
         if all(existing_files.values()):
-            logger.info(f"All files for {rec.name} already exist, skipping import")
+            logger.info("All files for %s already exist, skipping import", rec.name)
             return True
 
-        logger.info(f"Importing Aria recording {rec.name} to {output_dir}")
+        logger.info("Importing Aria recording %s to %s", rec.name, output_dir)
 
         # Create VRS data provider
         if progress_dialog:
@@ -131,7 +136,7 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
 
         vrs_data_provider = data_provider.create_vrs_data_provider(str(rec.source_path))
         if not vrs_data_provider:
-            raise RuntimeError(f"Failed to create VRS data provider for {rec.source_path}")
+            raise_provider_error()
 
         if check_cancelled():
             return False
@@ -210,14 +215,13 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
         elif existing_files["gazeData"]:
             logger.info("MPS gaze data already exists, skipping")
         elif not has_mps_data:
-            logger.warning(f"MPS folder not found at {mps_folder_path}, skipping MPS gaze data export")
+            logger.warning("MPS folder not found at %s, skipping MPS gaze data export", mps_folder_path)
 
         if has_local_gaze and not existing_files["gazeData_local"]:
             if progress_dialog:
                 progress_dialog.setLabelText(f"Extracting local gaze data: {rec.name}")
                 QApplication.processEvents()
-            logger.info(f"Extracting local gaze data from {rec.local_gaze_csv_path.name}...")
-            from .aria_vrs_exporter import export_local_gaze_data
+            logger.info("Extracting local gaze data from %s...", rec.local_gaze_csv_path.name)
 
             export_local_gaze_data(
                 vrs_data_provider,
@@ -305,7 +309,7 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
             # Remove the old gaze.tsv file
             gaze_file.unlink()
 
-            logger.info(f"MPS gaze data with frame_idx saved to {gaze_output_path}")
+            logger.info("MPS gaze data with frame_idx saved to %s", gaze_output_path)
 
         # Process local gaze data
         local_gaze_file = output_dir / "gaze_local.tsv"
@@ -338,11 +342,11 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
             # Remove the old gaze_local.tsv file
             local_gaze_file.unlink()
 
-            logger.info(f"Local gaze data with frame_idx saved to {local_gaze_output_path}")
+            logger.info("Local gaze data with frame_idx saved to %s", local_gaze_output_path)
 
-        logger.info(f"Successfully imported Aria recording {rec.name}")
+        logger.info("Successfully imported Aria recording %s", rec.name)
         return True
 
-    except Exception as e:
-        logger.exception(f"Failed to import Aria recording {rec.name}: {e}")
+    except Exception:
+        logger.exception("Failed to import Aria recording %s", rec.name)
         return False

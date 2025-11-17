@@ -143,6 +143,12 @@ lint.ignore = [
     "EM101", # Flake8-errmsg - Exception must not use a string literal, assign to variable first
     "EM102", # Flake8-errmsg - Exception must not use an f-string literal, assign to variable first
     "D401", # Pydocstyle - First line of docstring should be in imperative mood
+    "PLR0911", #Too many return statements
+    "C901", #Function too complex
+    "PLR0912", #Too many branches
+    "PLR0913", #Too many arguments
+    "PLR0917", #Too many arguments
+    "PLR0914", #Too many local variables
 ]
 
 [tool.ruff.lint.per-file-ignores]

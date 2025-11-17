@@ -103,7 +103,7 @@ class NewProjectDialog(BaseDialog):
         if self.existing_project_path:
             self._load_existing_project()
 
-    def setup_ui(self) -> None:  # noqa: PLR0914
+    def setup_ui(self) -> None:
         """Setup the new project creation UI."""
         layout = self.create_main_layout()
 
@@ -258,7 +258,7 @@ class NewProjectDialog(BaseDialog):
         self.events_list.addItem(item)
         self.events_list.setItemWidget(item, item_widget)
 
-    def _edit_or_add_event(  # noqa: PLR0914
+    def _edit_or_add_event(
         self, item: QListWidgetItem = None, name_label: QLabel = None, color_box: QLabel = None
     ) -> None:
         """Single dialog for both editing existing events and adding new ones."""

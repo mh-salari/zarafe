@@ -60,7 +60,7 @@ def _get_search_directories(source_dir: Path) -> list[Path]:
 
 
 def _discover_recordings(
-    dirs_to_search: list[Path], device: glassesTools.eyetracker.EyeTracker, specific_files: list[Path] = None
+    dirs_to_search: list[Path], device: glassesTools.eyetracker.EyeTracker, specific_files: list[Path] | None = None
 ) -> list[tuple]:
     """Discover all recordings in the given directories.
 
@@ -159,7 +159,7 @@ def import_recordings(
     project_path: Path,
     device: glassesTools.eyetracker.EyeTracker,
     parent_widget: object = None,
-    specific_files: list[Path] = None,
+    specific_files: list[Path] | None = None,
 ) -> int:
     """Imports recordings from a source directory and its immediate subdirectories.
 
