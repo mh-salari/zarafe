@@ -323,13 +323,17 @@ class VideoAnnotator(QMainWindow):  # noqa: PLR0904
         self.update_pupil_plot()
 
     def jump_forward_10(self) -> None:
-        """Jump forward 10 frames."""
-        self.video_manager.jump_frames(JUMP_FRAMES)
+        """Jump forward by configured amount of frames."""
+        config = self.config_service.get_config()
+        jump_amount = config.get_shift_jump_frames() if config else JUMP_FRAMES
+        self.video_manager.jump_frames(jump_amount)
         self.display_frame()
 
     def jump_backward_10(self) -> None:
-        """Jump backward 10 frames."""
-        self.video_manager.jump_frames(-JUMP_FRAMES)
+        """Jump backward by configured amount of frames."""
+        config = self.config_service.get_config()
+        jump_amount = config.get_shift_jump_frames() if config else JUMP_FRAMES
+        self.video_manager.jump_frames(-jump_amount)
         self.display_frame()
 
     def toggle_mute(self) -> None:

@@ -6,13 +6,9 @@ from pathlib import Path
 import pandas as pd
 from glassesTools import video_utils
 from projectaria_tools.core import data_provider
-from projectaria_tools.core.sensor_data import TimeDomain
-from projectaria_tools.core.stream_id import StreamId
 from PyQt6.QtWidgets import QApplication
 
 from .aria_vrs_exporter import (
-    RGB_CAMERA_STREAM_ID,
-    EYE_TRACKING_CAMERA_STREAM_ID,
     check_required_streams,
     export_camera_video,
     export_gaze_data_and_calibration,
@@ -27,12 +23,13 @@ logger = logging.getLogger(__name__)
 class AriaRecording:
     """Represents a Meta Aria Gen 1 recording discovered in a directory."""
 
-    def __init__(self, vrs_path: Path, local_gaze_csv_path: Path = None):
+    def __init__(self, vrs_path: Path, local_gaze_csv_path: Path | None = None) -> None:
         """Initialize an Aria recording.
 
         Args:
             vrs_path: Path to the VRS file
             local_gaze_csv_path: Optional path to local gaze CSV file
+
         """
         self.source_path = vrs_path
         self.name = vrs_path.stem
@@ -44,11 +41,10 @@ class AriaRecording:
         # Try to extract participant info from filename or metadata
         self._extract_participant_info()
 
-    def _extract_participant_info(self):
+    def _extract_participant_info(self) -> None:
         """Extract participant information from filename if available."""
         # You can customize this based on your naming convention
         # For now, we'll leave it as None and let the user handle it
-        pass
 
 
 def discover_aria_recordings(search_dir: Path) -> list[AriaRecording]:
@@ -59,6 +55,7 @@ def discover_aria_recordings(search_dir: Path) -> list[AriaRecording]:
 
     Returns:
         List of AriaRecording objects found in the directory
+
     """
     recordings = []
 
@@ -94,7 +91,9 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
 
     Returns:
         True if import was successful, False otherwise
+
     """
+
     def check_cancelled():
         """Check if user cancelled and process events."""
         if progress_dialog:
@@ -160,7 +159,9 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
                 progress_dialog.setLabelText(f"Extracting RGB camera video: {rec.name}")
                 QApplication.processEvents()
             logger.info("Extracting RGB camera video...")
-            export_camera_video(rec.source_path, output_dir, rgb_stream_id, "worldCamera.mp4", vrs_data_provider=vrs_data_provider)
+            export_camera_video(
+                rec.source_path, output_dir, rgb_stream_id, "worldCamera.mp4", vrs_data_provider=vrs_data_provider
+            )
         elif existing_files["worldCamera"]:
             logger.info("RGB camera video already exists, skipping")
 
@@ -174,7 +175,12 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
                 QApplication.processEvents()
             logger.info("Extracting eye tracking camera video (lossless)...")
             export_camera_video(
-                rec.source_path, output_dir, eye_tracking_stream_id, "eyeCamera.avi", use_lossless=True, vrs_data_provider=vrs_data_provider
+                rec.source_path,
+                output_dir,
+                eye_tracking_stream_id,
+                "eyeCamera.avi",
+                use_lossless=True,
+                vrs_data_provider=vrs_data_provider,
             )
         elif existing_files["eyeCamera"]:
             logger.info("Eye camera video already exists, skipping")
@@ -212,6 +218,7 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
                 QApplication.processEvents()
             logger.info(f"Extracting local gaze data from {rec.local_gaze_csv_path.name}...")
             from .aria_vrs_exporter import export_local_gaze_data
+
             export_local_gaze_data(
                 vrs_data_provider,
                 rgb_stream_id,
@@ -287,8 +294,7 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
 
             # Add frame_idx using glassesTools' method
             frame_idx_df = video_utils.timestamps_to_frame_number(
-                gaze_data.loc[:, "timestamp"].values,
-                frame_timestamps["timestamp"].values
+                gaze_data.loc[:, "timestamp"].values, frame_timestamps["timestamp"].values
             )
             gaze_data.insert(1, "frame_idx", frame_idx_df["frame_idx"].values)
 
@@ -321,8 +327,7 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
 
             # Add frame_idx using glassesTools' method
             frame_idx_df = video_utils.timestamps_to_frame_number(
-                local_gaze_data.loc[:, "timestamp"].values,
-                frame_timestamps["timestamp"].values
+                local_gaze_data.loc[:, "timestamp"].values, frame_timestamps["timestamp"].values
             )
             local_gaze_data.insert(1, "frame_idx", frame_idx_df["frame_idx"].values)
 

@@ -3,9 +3,8 @@
 from pathlib import Path
 
 import cv2
-import numpy as np
 from projectaria_tools.core import data_provider
-from projectaria_tools.core.sensor_data import SensorDataType, TimeDomain
+from projectaria_tools.core.sensor_data import SensorDataType
 from projectaria_tools.core.stream_id import StreamId
 from tqdm import tqdm
 
@@ -17,8 +16,7 @@ def convert_vrs_to_video_lossless(
     codec: str = "FFV1",
     container: str = "avi",
 ) -> None:
-    """
-    Convert VRS stream to lossless video that preserves exact pixel values.
+    """Convert VRS stream to lossless video that preserves exact pixel values.
 
     Args:
         vrs_path: Path to VRS file
@@ -26,6 +24,7 @@ def convert_vrs_to_video_lossless(
         stream_id: Stream ID to extract (default: "211-1" for eye camera)
         codec: Codec fourcc code (default: "FFV1" - lossless)
         container: Video container format (default: "avi")
+
     """
     # Ensure output has correct extension
     output_path = Path(output_path)

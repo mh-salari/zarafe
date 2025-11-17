@@ -115,7 +115,7 @@ class ProjectController:
                 "How would you like to import?",
                 ["Select specific VRS file(s)", "Import all from directory"],
                 0,
-                False
+                False,
             )
             if not ok:
                 return 0
@@ -123,10 +123,7 @@ class ProjectController:
             if choice == "Select specific VRS file(s)":
                 # Select specific VRS files
                 vrs_files, _ = QFileDialog.getOpenFileNames(
-                    parent_widget,
-                    "Select Aria VRS Recording(s)",
-                    str(Path.home()),
-                    "VRS Files (*.vrs);;All Files (*)"
+                    parent_widget, "Select Aria VRS Recording(s)", str(Path.home()), "VRS Files (*.vrs);;All Files (*)"
                 )
                 if not vrs_files:
                     return 0

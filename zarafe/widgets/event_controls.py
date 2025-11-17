@@ -97,17 +97,24 @@ class EventControls:
 
         return event_controls
 
-    @staticmethod
-    def create_shortcuts_info() -> QVBoxLayout:
+    def create_shortcuts_info(self) -> QVBoxLayout:
         """Create keyboard shortcuts information section."""
         shortcuts_layout = QVBoxLayout()
 
         shortcuts_label = QLabel("<h4>Keyboard Shortcuts</h4>")
         shortcuts_label.setStyleSheet("color: white")
+
+        # Get shift jump amount from config (default to 50 if not available)
+        jump_amount = 50
+        if hasattr(self.parent, "config_service"):
+            config = self.parent.config_service.get_config()
+            if config:
+                jump_amount = config.get_shift_jump_frames()
+
         shortcuts_text = QLabel(
             "• <b>Space</b>: Play/Pause<br>"
             "• <b>←/→</b>: Previous/Next Frame<br>"
-            "• <b>Shift+←/→</b>: Jump 10 Frames<br>"
+            f"• <b>Shift+←/→</b>: Jump {jump_amount} Frames<br>"
             "• <b>M</b>: Mute/Unmute Audio<br>"
             "• <b>Ctrl+S</b>: Save Events<br>"
             "• <b>Ctrl+Z</b>: Undo"

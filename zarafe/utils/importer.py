@@ -59,7 +59,9 @@ def _get_search_directories(source_dir: Path) -> list[Path]:
     return dirs_to_search
 
 
-def _discover_recordings(dirs_to_search: list[Path], device: glassesTools.eyetracker.EyeTracker, specific_files: list[Path] = None) -> list[tuple]:
+def _discover_recordings(
+    dirs_to_search: list[Path], device: glassesTools.eyetracker.EyeTracker, specific_files: list[Path] = None
+) -> list[tuple]:
     """Discover all recordings in the given directories.
 
     Args:
@@ -69,6 +71,7 @@ def _discover_recordings(dirs_to_search: list[Path], device: glassesTools.eyetra
 
     Returns:
         List of (recording_info, source_path) tuples
+
     """
     all_recordings_to_import = []
 
@@ -117,7 +120,11 @@ def _discover_recordings(dirs_to_search: list[Path], device: glassesTools.eyetra
 
 
 def _import_single_recording(
-    rec_info: object, rec_source_dir: Path, project_path: Path, device: glassesTools.eyetracker.EyeTracker, progress_dialog: object = None
+    rec_info: object,
+    rec_source_dir: Path,
+    project_path: Path,
+    device: glassesTools.eyetracker.EyeTracker,
+    progress_dialog: object = None,
 ) -> bool:
     """Import a single recording and return success status."""
     try:
@@ -128,21 +135,20 @@ def _import_single_recording(
             # Aria importer handles checking for existing files internally
             success = aria_importer.import_aria_recording(rec_info, rec_info.working_directory, progress_dialog)
             return 1 if success else 0
-        else:
-            # For other devices, skip if directory already exists
-            if rec_info.working_directory.exists():
-                logger.info("Recording directory '%s' already exists, skipping import.", rec_info.working_directory)
-                return 2  # Skipped
+        # For other devices, skip if directory already exists
+        if rec_info.working_directory.exists():
+            logger.info("Recording directory '%s' already exists, skipping import.", rec_info.working_directory)
+            return 2  # Skipped
 
-            # Use glassesTools for other devices
-            glassesTools.importing.do_import(
-                output_dir=None,  # Not needed when rec_info.working_directory is set
-                source_dir=rec_source_dir,
-                device=device,
-                rec_info=rec_info,
-                copy_scene_video=True,
-            )
-            return 1  # Imported
+        # Use glassesTools for other devices
+        glassesTools.importing.do_import(
+            output_dir=None,  # Not needed when rec_info.working_directory is set
+            source_dir=rec_source_dir,
+            device=device,
+            rec_info=rec_info,
+            copy_scene_video=True,
+        )
+        return 1  # Imported
     except Exception:  # Removed 'as e' as it's redundant with logger.exception
         logger.exception("Failed to import recording %s:", rec_info.name)
         return 0  # Failed

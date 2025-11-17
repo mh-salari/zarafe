@@ -53,3 +53,7 @@ class ProjectConfig:
             if event_type.get("applies_to") == "glassesValidator" and event_type["name"] == event_name:
                 return True
         return False
+
+    def get_shift_jump_frames(self) -> int:
+        """Get the number of frames to jump when using Shift+Arrow keys."""
+        return self.config.get("shift_jump_frames", 50)

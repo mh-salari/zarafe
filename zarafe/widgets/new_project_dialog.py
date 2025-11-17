@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -123,6 +124,14 @@ class NewProjectDialog(BaseDialog):
         self.project_name_input = QLineEdit()
         self.project_name_input.setPlaceholderText("e.g., Museum Eye Tracking Study")
         project_form.addRow("Project Name:", self.project_name_input)
+
+        self.shift_jump_input = QSpinBox()
+        self.shift_jump_input.setMinimum(1)
+        self.shift_jump_input.setMaximum(1000)
+        self.shift_jump_input.setValue(50)
+        self.shift_jump_input.setSuffix(" frames")
+        self.shift_jump_input.setToolTip("Number of frames to jump when using Shift+Arrow keys")
+        project_form.addRow("Shift Jump Amount:", self.shift_jump_input)
 
         scroll_layout.addWidget(project_group)
 
@@ -443,6 +452,7 @@ class NewProjectDialog(BaseDialog):
             "project": {"name": self.project_name_input.text().strip()},
             "event_types": [],
             "default_color": [123, 171, 61],
+            "shift_jump_frames": self.shift_jump_input.value(),
         }
 
         # Add event types
@@ -512,6 +522,10 @@ class NewProjectDialog(BaseDialog):
                 # Load project name
                 project_name = config.get("project", {}).get("name", "")
                 self.project_name_input.setText(project_name)
+
+                # Load shift jump frames (default to 50 if not in config)
+                shift_jump_frames = config.get("shift_jump_frames", 50)
+                self.shift_jump_input.setValue(shift_jump_frames)
 
                 # Load event types and track original names
                 event_types = config.get("event_types", [])

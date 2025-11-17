@@ -156,7 +156,12 @@ def print_camera_timing_info(
 
 
 def export_camera_video(
-    vrs_file_path: Path, output_folder_path: Path, stream_id: object, output_filename: str, use_lossless: bool = False, vrs_data_provider: object = None
+    vrs_file_path: Path,
+    output_folder_path: Path,
+    stream_id: object,
+    output_filename: str,
+    use_lossless: bool = False,
+    vrs_data_provider: object = None,
 ) -> None:
     """Export camera stream to video file.
 
@@ -167,6 +172,7 @@ def export_camera_video(
         output_filename: Name of the output video file
         use_lossless: Whether to use lossless encoding (for eye camera)
         vrs_data_provider: Optional VRS data provider (to check audio config)
+
     """
     output_video_path = output_folder_path / output_filename
 
@@ -190,7 +196,9 @@ def export_camera_video(
                 audio_channels = []
                 print("  Note: No audio stream detected, extracting video without audio")
 
-        convert_vrs_to_mp4(str(vrs_file_path), str(output_video_path), stream_id=str(stream_id), audio_channels=audio_channels)
+        convert_vrs_to_mp4(
+            str(vrs_file_path), str(output_video_path), stream_id=str(stream_id), audio_channels=audio_channels
+        )
 
     print(f"  Saved to: {output_video_path}")
 
@@ -719,7 +727,9 @@ def main() -> None:
         print("\n" + "=" * 80)
         print("Extracting RGB camera video...")
         print("=" * 80)
-        export_camera_video(vrs_file_path, output_folder_path, rgb_stream_id, "worldCamera.mp4", vrs_data_provider=vrs_data_provider)
+        export_camera_video(
+            vrs_file_path, output_folder_path, rgb_stream_id, "worldCamera.mp4", vrs_data_provider=vrs_data_provider
+        )
     else:
         print("\nSkipping RGB camera extraction")
 
@@ -729,7 +739,12 @@ def main() -> None:
         print("Extracting eye tracking camera video (lossless)...")
         print("=" * 80)
         export_camera_video(
-            vrs_file_path, output_folder_path, eye_tracking_stream_id, "eyeCamera.avi", use_lossless=True, vrs_data_provider=vrs_data_provider
+            vrs_file_path,
+            output_folder_path,
+            eye_tracking_stream_id,
+            "eyeCamera.avi",
+            use_lossless=True,
+            vrs_data_provider=vrs_data_provider,
         )
     else:
         print("\nSkipping eye tracking camera extraction")
