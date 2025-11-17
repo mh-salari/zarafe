@@ -50,8 +50,17 @@ class MainController:
         """Load gaze data and events."""
         self.current_file_name = video_dir.name
 
+        # Load gaze data (checks for both gazeData.tsv and gazeData_local.tsv)
+        gaze_file = video_dir / "gazeData.tsv"
+        local_gaze_file = video_dir / "gazeData_local.tsv"
+        if gaze_file.exists() or local_gaze_file.exists():
+            try:
+                self.gaze_manager.load_gaze_data(gaze_file)
+            except Exception as e:
+                print(f"Warning: Failed to load gaze data: {e}")
+
+        # Load other data files
         data_files = [
-            ("gazeData.tsv", self.gaze_manager.load_gaze_data),
             ("events.csv", lambda p: self.event_manager.load_from_csv(p) and self.event_manager.save_state()),
             ("markerInterval.tsv", self.event_manager.load_marker_intervals),
         ]

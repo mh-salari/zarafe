@@ -13,7 +13,8 @@ MIN_VIDEO_WIDTH = 640
 MIN_VIDEO_HEIGHT = 480
 ANNOTATION_FONT_SIZE = 14
 EVENT_BORDER_THICKNESS = 1
-GAZE_POINT_COLOR = (0, 255, 0, 150)
+GAZE_POINT_COLOR = (0, 255, 0, 150)  # Green for MPS gaze data
+GAZE_POINT_LOCAL_COLOR = (255, 0, 255, 150)  # Magenta for local gaze data
 GAZE_POINT_PEN_WIDTH = 1
 GAZE_POINT_RADIUS = 2
 GAZE_POINT_DIAMETER = 4
@@ -139,7 +140,9 @@ class VideoDisplay:
     def add_gaze_points(self, pixmap: QPixmap, original_w: int, original_h: int) -> QPixmap:
         """Add gaze point overlays to video frame."""
         gaze_points = self.parent.gaze_manager.get_gaze_points(self.parent.video_manager.current_frame)
-        if not gaze_points:
+        gaze_points_local = self.parent.gaze_manager.get_gaze_points_local(self.parent.video_manager.current_frame)
+
+        if not gaze_points and not gaze_points_local:
             return pixmap
 
         painter = QPainter(pixmap)
@@ -148,6 +151,7 @@ class VideoDisplay:
         scale_x = pixmap.width() / original_w
         scale_y = pixmap.height() / original_h
 
+        # Draw MPS gaze points (green)
         for x, y in gaze_points:
             if 0 <= x < original_w and 0 <= y < original_h:
                 scaled_x = int(x * scale_x)
@@ -155,6 +159,21 @@ class VideoDisplay:
 
                 painter.setPen(QPen(QColor(*GAZE_POINT_COLOR), GAZE_POINT_PEN_WIDTH))
                 painter.setBrush(QBrush(QColor(*GAZE_POINT_COLOR)))
+                painter.drawEllipse(
+                    scaled_x - GAZE_POINT_RADIUS,
+                    scaled_y - GAZE_POINT_RADIUS,
+                    GAZE_POINT_DIAMETER,
+                    GAZE_POINT_DIAMETER,
+                )
+
+        # Draw local gaze points (magenta)
+        for x, y in gaze_points_local:
+            if 0 <= x < original_w and 0 <= y < original_h:
+                scaled_x = int(x * scale_x)
+                scaled_y = int(y * scale_y)
+
+                painter.setPen(QPen(QColor(*GAZE_POINT_LOCAL_COLOR), GAZE_POINT_PEN_WIDTH))
+                painter.setBrush(QBrush(QColor(*GAZE_POINT_LOCAL_COLOR)))
                 painter.drawEllipse(
                     scaled_x - GAZE_POINT_RADIUS,
                     scaled_y - GAZE_POINT_RADIUS,
