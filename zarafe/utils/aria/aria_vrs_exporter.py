@@ -485,7 +485,10 @@ def export_gaze_data_and_calibration(
             f"RGB camera must use Fisheye624 calibration model, got {rgb_camera_calibration.get_model_name()}"
         )
 
-    # Rotate camera calibration if upright
+    # Save original calibration before rotation (for JSON export)
+    rgb_camera_calibration_original = rgb_camera_calibration
+
+    # Rotate camera calibration if upright (for colmap and gaze processing)
     if apply_upright_rotation:
         rgb_camera_calibration = calibration.rotate_camera_calib_cw90deg(rgb_camera_calibration)
 
@@ -531,26 +534,26 @@ def export_gaze_data_and_calibration(
             file_storage.write(name=key, val=value)
     file_storage.release()
 
-    # Save camera calibration to JSON (native Aria format)
-    transform_device_camera = rgb_camera_calibration.get_transform_device_camera()
+    # Save camera calibration to JSON (native Aria format - original, non-rotated)
+    transform_device_camera = rgb_camera_calibration_original.get_transform_device_camera()
     quat_and_trans = transform_device_camera.to_quat_and_translation()[0]
 
     aria_calibration_info = {
-        "model": str(rgb_camera_calibration.get_model_name()),
-        "label": rgb_camera_calibration.get_label(),
-        "image_width": int(rgb_camera_calibration.get_image_size()[0]),
-        "image_height": int(rgb_camera_calibration.get_image_size()[1]),
-        "focal_lengths": rgb_camera_calibration.get_focal_lengths().tolist(),
-        "principal_point": rgb_camera_calibration.get_principal_point().tolist(),
-        "projection_params": rgb_camera_calibration.get_projection_params().tolist(),
+        "model": str(rgb_camera_calibration_original.get_model_name()),
+        "label": rgb_camera_calibration_original.get_label(),
+        "image_width": int(rgb_camera_calibration_original.get_image_size()[0]),
+        "image_height": int(rgb_camera_calibration_original.get_image_size()[1]),
+        "focal_lengths": rgb_camera_calibration_original.get_focal_lengths().tolist(),
+        "principal_point": rgb_camera_calibration_original.get_principal_point().tolist(),
+        "projection_params": rgb_camera_calibration_original.get_projection_params().tolist(),
         "transform_device_camera": {
             "translation": quat_and_trans[4:].tolist(),
             "quaternion_wxyz": quat_and_trans[:4].tolist(),
             "matrix_4x4": transform_device_camera.to_matrix().tolist(),
         },
-        "valid_radius": rgb_camera_calibration.get_valid_radius(),
-        "max_solid_angle": rgb_camera_calibration.get_max_solid_angle(),
-        "serial_number": rgb_camera_calibration.get_serial_number(),
+        "valid_radius": rgb_camera_calibration_original.get_valid_radius(),
+        "max_solid_angle": rgb_camera_calibration_original.get_max_solid_angle(),
+        "serial_number": rgb_camera_calibration_original.get_serial_number(),
     }
 
     aria_calibration_output_path = output_folder_path / "camera_calibration.json"
