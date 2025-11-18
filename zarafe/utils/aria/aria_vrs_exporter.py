@@ -531,6 +531,29 @@ def export_gaze_data_and_calibration(
             file_storage.write(name=key, val=value)
     file_storage.release()
 
+    # Save camera calibration to JSON (native Aria format)
+    aria_calibration_info = {
+        "model": str(rgb_camera_calibration.get_model_name()),
+        "label": rgb_camera_calibration.get_label(),
+        "image_width": int(rgb_camera_calibration.get_image_size()[0]),
+        "image_height": int(rgb_camera_calibration.get_image_size()[1]),
+        "focal_lengths": rgb_camera_calibration.get_focal_lengths().tolist(),
+        "principal_point": rgb_camera_calibration.get_principal_point().tolist(),
+        "projection_params": rgb_camera_calibration.get_projection_params().tolist(),
+        "transform_device_camera": {
+            "translation": rgb_camera_calibration.get_transform_device_camera().translation().tolist(),
+            "quaternion_wxyz": rgb_camera_calibration.get_transform_device_camera().rotation().quaternion().tolist(),
+            "matrix_4x4": rgb_camera_calibration.get_transform_device_camera().to_matrix().tolist(),
+        },
+        "valid_radius": rgb_camera_calibration.get_valid_radius(),
+        "max_solid_angle": rgb_camera_calibration.get_max_solid_angle(),
+        "serial_number": rgb_camera_calibration.get_serial_number(),
+    }
+
+    aria_calibration_output_path = output_folder_path / "camera_calibration.json"
+    with aria_calibration_output_path.open("w", encoding="utf-8") as f:
+        json.dump(aria_calibration_info, f, indent=2)
+
     # Process gaze data
     gaze_samples = []
     for gaze_sample, general_gaze_sample in itertools.zip_longest(gaze_data, general_gaze_data):
