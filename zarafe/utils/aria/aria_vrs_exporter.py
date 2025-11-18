@@ -532,6 +532,9 @@ def export_gaze_data_and_calibration(
     file_storage.release()
 
     # Save camera calibration to JSON (native Aria format)
+    transform_device_camera = rgb_camera_calibration.get_transform_device_camera()
+    quat_and_trans = transform_device_camera.to_quat_and_translation()[0]
+
     aria_calibration_info = {
         "model": str(rgb_camera_calibration.get_model_name()),
         "label": rgb_camera_calibration.get_label(),
@@ -541,9 +544,9 @@ def export_gaze_data_and_calibration(
         "principal_point": rgb_camera_calibration.get_principal_point().tolist(),
         "projection_params": rgb_camera_calibration.get_projection_params().tolist(),
         "transform_device_camera": {
-            "translation": rgb_camera_calibration.get_transform_device_camera().translation().tolist(),
-            "quaternion_wxyz": rgb_camera_calibration.get_transform_device_camera().rotation().quaternion().tolist(),
-            "matrix_4x4": rgb_camera_calibration.get_transform_device_camera().to_matrix().tolist(),
+            "translation": quat_and_trans[4:].tolist(),
+            "quaternion_wxyz": quat_and_trans[:4].tolist(),
+            "matrix_4x4": transform_device_camera.to_matrix().tolist(),
         },
         "valid_radius": rgb_camera_calibration.get_valid_radius(),
         "max_solid_angle": rgb_camera_calibration.get_max_solid_angle(),

@@ -120,7 +120,8 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
             "gazeData_local": (output_dir / "gazeData_local.tsv").exists(),
             "imu": (output_dir / "imu_right.csv").exists() and (output_dir / "imu_left.csv").exists(),
             "metadata": (output_dir / "metadata.json").exists(),
-            "calibration": (output_dir / "calibration.xml").exists(),
+            "calibration": (output_dir / "calibration.xml").exists()
+            and (output_dir / "camera_calibration.json").exists(),
         }
 
         if all(existing_files.values()):
@@ -199,7 +200,7 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
         has_mps_data = mps_folder_path.exists()
         has_local_gaze = rec.local_gaze_csv_path is not None and rec.local_gaze_csv_path.exists()
 
-        if has_mps_data and not existing_files["gazeData"]:
+        if has_mps_data and (not existing_files["gazeData"] or not existing_files["calibration"]):
             if progress_dialog:
                 progress_dialog.setLabelText(f"Extracting MPS gaze data: {rec.name}")
                 QApplication.processEvents()
@@ -212,8 +213,8 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
                 rgb_start_time_ns,
                 apply_upright_rotation=True,
             )
-        elif existing_files["gazeData"]:
-            logger.info("MPS gaze data already exists, skipping")
+        elif existing_files["gazeData"] and existing_files["calibration"]:
+            logger.info("MPS gaze data and calibration already exist, skipping")
         elif not has_mps_data:
             logger.warning("MPS folder not found at %s, skipping MPS gaze data export", mps_folder_path)
 
