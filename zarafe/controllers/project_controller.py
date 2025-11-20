@@ -154,6 +154,7 @@ class ProjectController:
             device=selected_device,
             parent_widget=parent_widget,
             specific_files=specific_files,
+            project_config=self.config_service.get_config(),
         )
 
         return successfully_imported

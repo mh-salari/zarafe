@@ -125,6 +125,7 @@ def _import_single_recording(
     project_path: Path,
     device: glassesTools.eyetracker.EyeTracker,
     progress_dialog: object = None,
+    project_config: object = None,
 ) -> bool:
     """Import a single recording and return success status."""
     try:
@@ -133,7 +134,9 @@ def _import_single_recording(
         # Handle Aria separately
         if device.value == "Meta Aria Gen 1":
             # Aria importer handles checking for existing files internally
-            success = aria_importer.import_aria_recording(rec_info, rec_info.working_directory, progress_dialog)
+            success = aria_importer.import_aria_recording(
+                rec_info, rec_info.working_directory, progress_dialog, project_config
+            )
             return 1 if success else 0
         # For other devices, skip if directory already exists
         if rec_info.working_directory.exists():
@@ -160,6 +163,7 @@ def import_recordings(
     device: glassesTools.eyetracker.EyeTracker,
     parent_widget: object = None,
     specific_files: list[Path] | None = None,
+    project_config: object = None,
 ) -> int:
     """Imports recordings from a source directory and its immediate subdirectories.
 
@@ -169,6 +173,7 @@ def import_recordings(
         device: The eye tracker device model.
         parent_widget: The parent widget for dialogs.
         specific_files: Optional list of specific files to import (for Aria VRS files).
+        project_config: Optional project configuration object.
 
     Returns:
         The number of successfully imported recordings.
@@ -205,7 +210,9 @@ def import_recordings(
         progress.setValue(i)
         QApplication.processEvents()
 
-        import_status = _import_single_recording(rec_info, rec_source_dir, project_path, device, progress)
+        import_status = _import_single_recording(
+            rec_info, rec_source_dir, project_path, device, progress, project_config
+        )
         if import_status == 1:
             successfully_imported += 1
         elif import_status == 2:

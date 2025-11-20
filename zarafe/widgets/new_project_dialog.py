@@ -10,6 +10,7 @@ from pathlib import Path
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QEnterEvent, QMouseEvent
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QColorDialog,
     QDialog,
     QFileDialog,
@@ -132,6 +133,14 @@ class NewProjectDialog(BaseDialog):
         self.shift_jump_input.setSuffix(" frames")
         self.shift_jump_input.setToolTip("Number of frames to jump when using Shift+Arrow keys")
         project_form.addRow("Shift Jump Amount:", self.shift_jump_input)
+
+        self.import_eye_camera_checkbox = QCheckBox("Import eye camera videos (Aria)")
+        self.import_eye_camera_checkbox.setChecked(True)
+        self.import_eye_camera_checkbox.setToolTip(
+            "When importing Meta Aria recordings, include eye camera videos. "
+            "Uncheck to save disk space if you don't need eye videos."
+        )
+        project_form.addRow("", self.import_eye_camera_checkbox)
 
         scroll_layout.addWidget(project_group)
 
@@ -453,6 +462,7 @@ class NewProjectDialog(BaseDialog):
             "event_types": [],
             "default_color": [123, 171, 61],
             "shift_jump_frames": self.shift_jump_input.value(),
+            "import_eye_camera": self.import_eye_camera_checkbox.isChecked(),
         }
 
         # Add event types
@@ -526,6 +536,10 @@ class NewProjectDialog(BaseDialog):
                 # Load shift jump frames (default to 50 if not in config)
                 shift_jump_frames = config.get("shift_jump_frames", 50)
                 self.shift_jump_input.setValue(shift_jump_frames)
+
+                # Load import eye camera setting (default to True if not in config)
+                import_eye_camera = config.get("import_eye_camera", True)
+                self.import_eye_camera_checkbox.setChecked(import_eye_camera)
 
                 # Load event types and track original names
                 event_types = config.get("event_types", [])

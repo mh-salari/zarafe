@@ -57,3 +57,7 @@ class ProjectConfig:
     def get_shift_jump_frames(self) -> int:
         """Get the number of frames to jump when using Shift+Arrow keys."""
         return self.config.get("shift_jump_frames", 50)
+
+    def should_import_eye_camera(self) -> bool:
+        """Check if eye camera videos should be imported for Aria recordings."""
+        return self.config.get("import_eye_camera", True)

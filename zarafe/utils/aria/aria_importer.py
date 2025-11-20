@@ -82,13 +82,16 @@ def discover_aria_recordings(search_dir: Path) -> list[AriaRecording]:
     return recordings
 
 
-def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog: object = None) -> bool:
+def import_aria_recording(
+    rec: AriaRecording, output_dir: Path, progress_dialog: object = None, project_config: object = None
+) -> bool:
     """Import an Aria recording using the VRS exporter.
 
     Args:
         rec: AriaRecording object to import
         output_dir: Directory where the recording will be imported
         progress_dialog: Optional progress dialog to check for cancellation
+        project_config: Optional project configuration object
 
     Returns:
         True if import was successful, False otherwise
@@ -112,10 +115,15 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
         # Create output directory
         output_dir.mkdir(exist_ok=True, parents=True)
 
+        # Determine if eye camera should be imported
+        should_import_eye_camera = True
+        if project_config is not None:
+            should_import_eye_camera = project_config.should_import_eye_camera()
+
         # Check which files already exist
         existing_files = {
             "worldCamera": (output_dir / "worldCamera.mp4").exists(),
-            "eyeCamera": (output_dir / "eyeCamera.avi").exists(),
+            "eyeCamera": (output_dir / "eyeCamera.avi").exists() if should_import_eye_camera else True,
             "gazeData": (output_dir / "gazeData.tsv").exists(),
             "gazeData_local": (output_dir / "gazeData_local.tsv").exists(),
             "imu": (output_dir / "imu_right.csv").exists() and (output_dir / "imu_left.csv").exists(),
@@ -144,7 +152,7 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
 
         # Check for required streams
         has_rgb_camera, has_eye_tracking_camera, rgb_stream_id, eye_tracking_stream_id = check_required_streams(
-            vrs_data_provider, skip_rgb=False, skip_eye=False
+            vrs_data_provider, skip_rgb=False, skip_eye=not should_import_eye_camera
         )
 
         # Get camera timing information
@@ -175,21 +183,24 @@ def import_aria_recording(rec: AriaRecording, output_dir: Path, progress_dialog:
             return False
 
         # Export eye tracking camera video (lossless)
-        if has_eye_tracking_camera and not existing_files["eyeCamera"]:
-            if progress_dialog:
-                progress_dialog.setLabelText(f"Extracting eye camera video: {rec.name}")
-                QApplication.processEvents()
-            logger.info("Extracting eye tracking camera video (lossless)...")
-            export_camera_video(
-                rec.source_path,
-                output_dir,
-                eye_tracking_stream_id,
-                "eyeCamera.avi",
-                use_lossless=True,
-                vrs_data_provider=vrs_data_provider,
-            )
-        elif existing_files["eyeCamera"]:
-            logger.info("Eye camera video already exists, skipping")
+        if should_import_eye_camera:
+            if has_eye_tracking_camera and not existing_files["eyeCamera"]:
+                if progress_dialog:
+                    progress_dialog.setLabelText(f"Extracting eye camera video: {rec.name}")
+                    QApplication.processEvents()
+                logger.info("Extracting eye tracking camera video (lossless)...")
+                export_camera_video(
+                    rec.source_path,
+                    output_dir,
+                    eye_tracking_stream_id,
+                    "eyeCamera.avi",
+                    use_lossless=True,
+                    vrs_data_provider=vrs_data_provider,
+                )
+            elif existing_files["eyeCamera"]:
+                logger.info("Eye camera video already exists, skipping")
+        else:
+            logger.info("Eye camera import disabled in project settings, skipping")
 
         if check_cancelled():
             return False
