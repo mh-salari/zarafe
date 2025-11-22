@@ -409,6 +409,10 @@ class VideoAnnotator(QMainWindow):  # noqa: PLR0904
 
     def _edit_current_project(self) -> None:
         """Edit current project using project controller."""
+        # Check for unsaved changes before editing
+        if not self.check_unsaved_changes():
+            return
+
         if self.project_controller.edit_current_project(self):
             # Reload the entire project to refresh all UI components
             self._reload_current_project()

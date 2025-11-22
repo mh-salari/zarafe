@@ -74,18 +74,34 @@ class MainController:
                     print(f"Warning: Failed to load {filename}: {e}")
 
     def check_unsaved_changes(self, parent_window: object) -> bool:
-        """Check if there are unsaved changes and prompt user."""
+        """Check if there are unsaved changes and prompt user.
+
+        Returns:
+            True if it's safe to continue (no changes, saved, or discarded)
+            False if user cancelled the operation
+
+        """
         if not self.has_unsaved_changes:
             return True
 
-        reply = QMessageBox.question(
-            parent_window,
-            "Unsaved Changes",
-            "You have unsaved changes. Do you want to continue without saving?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
+        msg_box = QMessageBox(parent_window)
+        msg_box.setWindowTitle("Unsaved Changes")
+        msg_box.setText("You have unsaved changes.")
+        msg_box.setInformativeText("Do you want to save your changes?")
+        msg_box.setStandardButtons(
+            QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel
         )
-        return reply == QMessageBox.StandardButton.Yes
+        msg_box.setDefaultButton(QMessageBox.StandardButton.Save)
+
+        reply = msg_box.exec()
+
+        if reply == QMessageBox.StandardButton.Save:
+            # Call the parent window's save method
+            if hasattr(parent_window, "save_events"):
+                parent_window.save_events()
+            return True
+        # Return True for Discard, False for Cancel
+        return reply == QMessageBox.StandardButton.Discard
 
     def mark_unsaved_changes(self) -> None:
         """Mark that there are unsaved changes."""
