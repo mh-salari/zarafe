@@ -10,7 +10,7 @@ authors = [
     {name = "Mohammadhossein Salari", email = "mohammadhossein.salari@gmail.com"}
 ]
 readme = "README.md"
-license = {file = "LICENSE"}
+license = {text = "MIT"}
 requires-python = ">=3.11"
 dependencies = [
     "opencv-python-headless>=4.11.0",
@@ -23,6 +23,11 @@ dependencies = [
     "projectaria-tools>=2.0.0",
     "moviepy==1.0.3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/mh-salari/zarafe"
+Repository = "https://github.com/mh-salari/zarafe"
+Issues = "https://github.com/mh-salari/zarafe/issues"
 
 [project.optional-dependencies]
 dev = [

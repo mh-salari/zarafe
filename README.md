@@ -1,5 +1,9 @@
 # Zarafe <img src="https://github.com/mh-salari/zarafe/raw/main/resources/app_icon.ico" alt="zarafe" width="30" height="30">
 
+[![PyPI version](https://img.shields.io/pypi/v/zarafe)](https://pypi.org/project/zarafe/)
+[![Downloads](https://static.pepy.tech/badge/zarafe)](https://pepy.tech/project/zarafe)
+[![License](https://img.shields.io/pypi/l/zarafe)](https://github.com/mh-salari/zarafe/blob/main/LICENSE)
+
 Zarafe is an open-source video annotation tool that unifies time-based event marking across different head-mounted eye trackers through a single, easy-to-use interface.
 
 <p align="center">
